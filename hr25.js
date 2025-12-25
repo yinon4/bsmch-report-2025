@@ -64,6 +64,22 @@ document.querySelectorAll(".prev-btn").forEach((btn) => {
     playClickLow();
     // vibrate(8);
     prevSlide();
+    // Add bubbly click effects
+    const rect = btn.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    // Spawn bubbles around the button
+    for (let i = 0; i < 8; i++) {
+      bubbles.push(makeBubble(
+        centerX + rand(-30, 30),
+        centerY + rand(-30, 30),
+        true
+      ));
+    }
+    // Small confetti burst
+    spawnConfetti(centerX, centerY, 15);
+    // Darken background
+    triggerDarken();
   });
 });
 document.querySelectorAll(".next-btn").forEach((btn) => {
@@ -72,6 +88,22 @@ document.querySelectorAll(".next-btn").forEach((btn) => {
     playClickHigh();
     // vibrate(8);
     nextSlide();
+    // Add bubbly click effects
+    const rect = btn.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    // Spawn bubbles around the button
+    for (let i = 0; i < 8; i++) {
+      bubbles.push(makeBubble(
+        centerX + rand(-30, 30),
+        centerY + rand(-30, 30),
+        true
+      ));
+    }
+    // Small confetti burst
+    spawnConfetti(centerX, centerY, 15);
+    // Darken background
+    triggerDarken();
   });
 });
 
@@ -864,6 +896,14 @@ function addRipple(e) {
   rip.addEventListener("animationend", () => rip.remove());
 }
 
+function triggerDarken() {
+  const darken = document.querySelector('.click-darken');
+  darken.classList.add('active');
+  setTimeout(() => {
+    darken.classList.remove('active');
+  }, 300);
+}
+
 // Keyboard shortcuts
 document.addEventListener("keydown", (e) => {
   if (e.key === "t" || e.key === "T") {
@@ -886,7 +926,7 @@ resizeCanvas();
 
 // Device orientation for 3D tilt on mobile
 if (window.DeviceOrientationEvent) {
-  window.addEventListener('deviceorientation', function(event) {
+  window.addEventListener("deviceorientation", function (event) {
     const beta = event.beta; // front-to-back tilt (-180 to 180)
     const gamma = event.gamma; // left-to-right tilt (-90 to 90)
     if (beta !== null && gamma !== null) {
