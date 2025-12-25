@@ -45,6 +45,8 @@ function nextSlide() {
 
 function prevSlide() {
   if (index > 0) {
+    // Back sound on navigating backwards (SFX)
+    playBackSFX();
     index--;
     showSlide(index);
   }
@@ -142,9 +144,49 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
   let holdRAF = null;
   let holdIndicator = null;
   let milestone = 0; // for haptic progress pulses
-  const required = 500; // 0.5 seconds
+  const required = 2900; // 0.5 seconds
+  let holdCompleted = false;
 
-  const cleanupHold = () => {
+  // Managed boom instance for hold lifecycle
+  let holdBoomAudio = null;
+  function startHoldBoom() {
+    try {
+      // If a previous instance is still referenced, stop it first
+      if (holdBoomAudio) {
+        try {
+          holdBoomAudio.pause();
+        } catch (_) {}
+        holdBoomAudio = null;
+      }
+      const a = new Audio("boom.mp3");
+      a.preload = "auto";
+      a.volume = 1;
+      a.currentTime = 0;
+      a.play().catch(() => {});
+      a.addEventListener(
+        "ended",
+        () => {
+          // Clear reference when it naturally finishes
+          if (holdBoomAudio === a) holdBoomAudio = null;
+        },
+        { once: true }
+      );
+      holdBoomAudio = a;
+    } catch (_) {}
+  }
+  function stopHoldBoom(reset = true) {
+    try {
+      if (holdBoomAudio) {
+        try {
+          holdBoomAudio.pause();
+          if (reset) holdBoomAudio.currentTime = 0;
+        } catch (_) {}
+        holdBoomAudio = null;
+      }
+    } catch (_) {}
+  }
+
+  const cleanupHold = (completed = false) => {
     holding = false;
     if (holdIndicator) {
       holdIndicator.remove();
@@ -156,6 +198,10 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     }
     // Stop loading suspense tone
     stopSuspense();
+    // If user canceled early, stop the boom; on completion let it finish
+    if (!completed) {
+      stopHoldBoom(true);
+    }
     // Reset button transform
     btn.style.transform = "";
   };
@@ -191,14 +237,13 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       milestone = 2;
     }
     if (p >= 1) {
-      cleanupHold();
+      holdCompleted = true;
+      cleanupHold(true);
       vibrate([50, 100, 50, 100, 50]);
       triggerRevealForButton(btn, variant);
       // Finish loading tone and play success chime
       stopSuspense();
       playSuccess();
-      // Play a big fat boom shortly after success
-      setTimeout(() => playBoom(), 120);
       // MASSIVE EXPLOSION EFFECT
       const rect = btn.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
@@ -227,6 +272,11 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       }
       // COLOR BURST FLASH
       triggerColorBurst();
+      // Extra hearts rain on final slide
+      const slideEl = btn.closest(".slide");
+      if (slideEl && slides && slideEl === slides[slides.length - 1]) {
+        startHeartRain(4000);
+      }
       return;
     }
     holdRAF = requestAnimationFrame(loop);
@@ -234,6 +284,9 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
 
   btn.addEventListener("pointerdown", (e) => {
     addRipple(e);
+    // Start the managed boom when hold begins
+    holdCompleted = false;
+    startHoldBoom();
     // start hold tracking
     holding = true;
     holdStart = performance.now();
@@ -249,7 +302,9 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
   const cancelers = ["pointerup", "pointerleave", "pointercancel"];
   cancelers.forEach((evt) =>
     btn.addEventListener(evt, () => {
-      cleanupHold();
+      // If the hold already completed, don't stop the boom on release
+      if (holdCompleted) return;
+      cleanupHold(false);
     })
   );
 
@@ -695,6 +750,30 @@ function drawHeart(h) {
   ctx.restore();
 }
 
+// Heart rain effect for finales
+function startHeartRain(duration = 3000) {
+  const start = performance.now();
+  const spawn = () => {
+    const nowTs = performance.now();
+    if (nowTs - start > duration) return;
+    for (let i = 0; i < 8; i++) {
+      const x = rand(0, cw);
+      const size = rand(10, 26);
+      hearts.push({
+        x,
+        y: -20,
+        vx: rand(-0.4, 0.4),
+        vy: rand(1.0, 2.4),
+        size,
+        alpha: rand(0.8, 1),
+        hue: rand(330, 360),
+      });
+    }
+    setTimeout(spawn, 70);
+  };
+  spawn();
+}
+
 function makeFirework(x, y) {
   const particles = [];
   for (let i = 0; i < 20; i++) {
@@ -773,6 +852,11 @@ document.addEventListener(
     }
     lastClickTime = now;
     const isButton = e.target.closest("button");
+    const isReveal = e.target.closest(".reveal-btn");
+    // Play boop on mouse presses only, excluding the big reveal button
+    if (e.pointerType === "mouse" && !isReveal) {
+      playBoop();
+    }
     if (!isButton) playPop(1.05);
     // Ensure audio context is active after first interaction
     if (audioCtx && audioCtx.state === "suspended") {
@@ -828,7 +912,7 @@ document.addEventListener(
     }
     spawnConfetti(e.clientX, e.clientY, 20);
     vibrate([20, 100, 20]);
-    playHeart(); // Play heart sound for double-click burst
+    playHeartSFX(); // Play heart sound for double-click burst
   },
   { passive: true }
 );
@@ -1122,6 +1206,86 @@ function playWhoosh(direction) {
   src.connect(filter).connect(g).connect(audioCtx.destination);
   src.start();
   src.stop(now() + 0.22);
+}
+
+function playBack() {
+  // Short, low whoosh indicating back navigation
+  ensureAudio();
+  if (!audioCtx) return;
+  const bufferSize = Math.floor(0.15 * audioCtx.sampleRate);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(600, now());
+  filter.frequency.linearRampToValueAtTime(280, now() + 0.12);
+  const g = makeGain(0);
+  quickEnv(g, 0.14, 0.07);
+  src.connect(filter).connect(g).connect(audioCtx.destination);
+  src.start();
+  src.stop(now() + 0.18);
+}
+
+// Button boop sound using HTMLAudioElement
+const boopSrc = "boop.mp3";
+let boopPool = [];
+let boopIndex = 0;
+function initBoop() {
+  if (boopPool.length) return;
+  for (let i = 0; i < 5; i++) {
+    const a = new Audio(boopSrc);
+    a.preload = "auto";
+    a.volume = 0.9;
+    boopPool.push(a);
+  }
+}
+function playBoop() {
+  try {
+    if (!boopPool.length) initBoop();
+    const a = boopPool[boopIndex++ % boopPool.length];
+    a.currentTime = 0;
+    a.play().catch(() => {});
+  } catch (_) {}
+}
+
+// Additional SFX pools for boom/back/heart
+function createSfxPool(src, size = 4, volume = 1) {
+  const pool = [];
+  for (let i = 0; i < size; i++) {
+    const a = new Audio(src);
+    a.preload = "auto";
+    a.volume = volume;
+    pool.push(a);
+  }
+  let idx = 0;
+  return {
+    play() {
+      try {
+        const a = pool[idx++ % pool.length];
+        a.currentTime = 0;
+        a.play().catch(() => {});
+      } catch (_) {}
+    },
+  };
+}
+
+let sfxBoom = null;
+let sfxBack = null;
+let sfxHeart = null;
+function playBoomSFX() {
+  if (!sfxBoom) sfxBoom = createSfxPool("boom.mp3", 3, 1);
+  sfxBoom.play();
+}
+function playBackSFX() {
+  if (!sfxBack) sfxBack = createSfxPool("back.mp3", 3, 0.9);
+  sfxBack.play();
+}
+function playHeartSFX() {
+  if (!sfxHeart) sfxHeart = createSfxPool("heart.mp3", 3, 0.9);
+  sfxHeart.play();
 }
 
 function playSiren(cycles = 2) {
