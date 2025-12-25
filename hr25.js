@@ -720,14 +720,25 @@ const pointerHandler = (clientX, clientY) => {
     bubbles.push(makeBubble(clientX, clientY, true));
     lastPointerSpawn = now;
   }
-  // subtle parallax on active slide
+  // Optimized parallax on active slide with hardware acceleration
   const active = document.querySelector(".slide.active");
   if (active) {
-    const xPct = clientX / cw - 0.5;
-    const yPct = clientY / ch - 0.5;
-    active.style.transform = `rotateY(${xPct * 8}deg) rotateX(${
-      yPct * -6
-    }deg) translate(${xPct * 14}px, ${yPct * 12}px)`;
+    const xPct = (clientX / cw - 0.5) * 2; // normalize to -1 to 1
+    const yPct = (clientY / ch - 0.5) * 2;
+
+    // Use smaller values on mobile for subtler effect
+    const isMobile = window.innerWidth <= 600;
+    const xMultiplier = isMobile ? 4 : 8;
+    const yMultiplier = isMobile ? 3 : 6;
+    const xOffset = isMobile ? 6 : 14;
+    const yOffset = isMobile ? 5 : 12;
+
+    // Use translate3d for hardware acceleration
+    active.style.transform = `translate3d(${xPct * xOffset}px, ${
+      yPct * yOffset
+    }px, 0) rotateY(${xPct * xMultiplier}deg) rotateX(${
+      yPct * -yMultiplier
+    }deg)`;
   }
   // sparkles trail
   sparkles.push(makeSparkle(clientX, clientY));
@@ -1048,16 +1059,54 @@ document.addEventListener("keydown", (e) => {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// Device orientation for 3D tilt on mobile
+// Device orientation for 3D tilt on mobile - optimized with smoothing
 if (window.DeviceOrientationEvent) {
+  let currentRotateX = 0;
+  let currentRotateY = 0;
+  let targetRotateX = 0;
+  let targetRotateY = 0;
+  let orientationRAF = null;
+
+  // Smoothing function for natural movement
+  function smoothOrientation() {
+    // Interpolate current values toward target (smoothing)
+    const smoothing = 0.1;
+    currentRotateX += (targetRotateX - currentRotateX) * smoothing;
+    currentRotateY += (targetRotateY - currentRotateY) * smoothing;
+
+    // Apply transform to active slide instead of body for better performance
+    const active = document.querySelector(".slide.active");
+    if (active) {
+      active.style.transform = `translate3d(0, 0, 0) rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg)`;
+    }
+
+    orientationRAF = requestAnimationFrame(smoothOrientation);
+  }
+
   window.addEventListener("deviceorientation", function (event) {
     const beta = event.beta; // front-to-back tilt (-180 to 180)
     const gamma = event.gamma; // left-to-right tilt (-90 to 90)
+
     if (beta !== null && gamma !== null) {
-      // Center the rotation: beta 0 is flat, so subtract 90 to make flat = 0
-      const rotateX = (beta - 90) * 0.5; // dampen the effect
-      const rotateY = gamma * 0.5;
-      document.body.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      // Dampen the effect for mobile - less intense than original
+      // Clamp values to prevent extreme rotations
+      const clampedBeta = Math.max(-60, Math.min(60, beta));
+      const clampedGamma = Math.max(-45, Math.min(45, gamma));
+
+      targetRotateX = clampedBeta * 0.15; // reduced from 0.5
+      targetRotateY = clampedGamma * 0.2; // reduced from 0.5
+
+      // Start animation loop if not already running
+      if (!orientationRAF) {
+        smoothOrientation();
+      }
+    }
+  });
+
+  // Clean up on page unload
+  window.addEventListener("beforeunload", () => {
+    if (orientationRAF) {
+      cancelAnimationFrame(orientationRAF);
     }
   });
 }

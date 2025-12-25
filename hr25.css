@@ -28,10 +28,15 @@ body {
   color: var(--text);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  perspective: 1200px; /* increased for more 3D depth */
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
 }
 
 /* Floating bubble particle canvas */
@@ -54,8 +59,11 @@ body {
   overflow-y: auto; /* allow content scroll on small screens */
   position: relative;
   z-index: 1;
-  will-change: transform;
+  will-change: transform, opacity;
   transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
 }
 
 .slide.active {
@@ -232,16 +240,16 @@ ul {
 
 @keyframes bubble-pop-mobile {
   0% {
-    transform: scale(0.92) rotateX(-5deg);
+    transform: scale(0.92) translate3d(0, 0, 0) rotateX(-3deg);
   }
   30% {
-    transform: scale(1.02) rotateX(3deg) rotateY(-2deg);
+    transform: scale(1.02) translate3d(0, 0, 5px) rotateX(2deg) rotateY(-1deg);
   }
   65% {
-    transform: scale(1.05) rotateX(-2deg) rotateY(2deg);
+    transform: scale(1.04) translate3d(0, 0, 8px) rotateX(-1deg) rotateY(1deg);
   }
   100% {
-    transform: scale(1) rotateX(0deg) rotateY(0deg);
+    transform: scale(1) translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg);
   }
 }
 
@@ -659,14 +667,18 @@ ul {
 /* Mobile adjustments */
 @media (max-width: 600px) {
   body {
-    perspective: 800px;
+    perspective: 700px;
+    perspective-origin: 50% 50%;
   }
-
+  
   .slide {
     padding: 18px;
     transform-style: preserve-3d;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
   }
-
+  
   .slide.active {
     animation: bubble-pop-mobile 700ms cubic-bezier(0.2, 1.1, 0.2, 1);
   }
@@ -674,14 +686,15 @@ ul {
   h1 {
     font-size: clamp(2rem, 8vw, 3.5rem);
     margin: 40px 0 8px 0;
-    transform: translateZ(25px) rotateX(2deg);
+    transform: translate3d(0, 0, 20px) rotateX(1deg);
+    backface-visibility: hidden;
+    will-change: transform;
   }
-
+  
   h2 {
-    transform: translateZ(15px) rotateX(1deg);
-  }
-
-  h2 {
+    transform: translate3d(0, 0, 12px) rotateX(0.5deg);
+    backface-visibility: hidden;
+    will-change: transform;
     font-size: clamp(1.6rem, 6vw, 2.5rem);
   }
 
@@ -737,31 +750,35 @@ ul {
     font-size: clamp(1.6rem, 5.5vw, 2.2rem);
     margin: 16px 16px;
     border-width: 3px;
-    transform: translateZ(18px) rotateX(1deg);
+    transform: translate3d(0, 0, 15px);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
   }
-
+  
   .reveal-btn:hover,
   .reveal-btn:active {
-    transform: translateZ(18px) translateY(-4px) scale(1.02) rotateX(2deg);
+    transform: translate3d(0, -4px, 15px) scale(1.02);
   }
 
   .content {
     padding: 24px 20px;
     margin: 12px 16px 0;
     border-radius: 24px;
-    transform: scale(1) translateZ(12px) rotateX(1deg);
+    transform: translate3d(0, 0, 10px);
+    backface-visibility: hidden;
+    will-change: transform, opacity;
   }
-
+  
   .navigation {
-    transform: translateZ(10px);
+    transform: translate3d(0, 0, 8px);
+    backface-visibility: hidden;
   }
-
-  .emoji {
-    font-size: clamp(2rem, 10vw, 3.5rem);
-  }
-}
-
-/* Extra small mobile devices */
+  
+  .nav-btn {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
 @media (max-width: 400px) {
   .reveal-btn {
     padding: 16px 24px;
