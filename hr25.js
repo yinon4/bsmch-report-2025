@@ -58,11 +58,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 // Add button event listeners
-document.querySelectorAll(".prev-btn").forEach(btn => {
+document.querySelectorAll(".prev-btn").forEach((btn) => {
   btn.addEventListener("click", (e) => {
     addRipple(e);
     playClickLow();
-    vibrate(8);
+    // vibrate(8);
     prevSlide();
   });
 });
@@ -70,20 +70,13 @@ document.querySelectorAll(".next-btn").forEach(btn => {
   btn.addEventListener("click", (e) => {
     addRipple(e);
     playClickHigh();
-    vibrate(8);
+    // vibrate(8);
     nextSlide();
   });
 });
 
 // Press-and-hold reveal buttons (3s) with progress ring and reveal effects
 let revealCounter = 0;
-function vibrate(pattern) {
-  try {
-    if (navigator && typeof navigator.vibrate === "function") {
-      navigator.vibrate(pattern);
-    }
-  } catch (_) {}
-}
 function triggerRevealForButton(btn, variant) {
   const slide = btn.closest(".slide");
   const content = slide.querySelector(".content");
@@ -92,7 +85,9 @@ function triggerRevealForButton(btn, variant) {
     // next frame to allow transition
     requestAnimationFrame(() => content.classList.add("show"));
     const rect = btn.getBoundingClientRect();
-    fireworks.push(makeFirework(rect.left + rect.width / 2, rect.top + rect.height / 2));
+    fireworks.push(
+      makeFirework(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    );
     spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
     spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, 60);
     if (variant === "spark") playSpark();
@@ -130,18 +125,18 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     if (holdIndicator) {
       holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
     }
-    // Haptic feedback milestones at ~33% and ~66%
+  // Haptic feedback milestones at ~33% and ~66%
     if (p >= 0.33 && milestone < 1) {
-      vibrate(12);
+      // vibrate(12);
       milestone = 1;
     }
     if (p >= 0.66 && milestone < 2) {
-      vibrate([8, 60, 8]);
+      // vibrate([8, 60, 8]);
       milestone = 2;
     }
     if (p >= 1) {
       cleanupHold();
-      vibrate([20, 50, 20]);
+      // vibrate([20, 50, 20]);
       triggerRevealForButton(btn, variant);
       return;
     }
@@ -157,7 +152,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     holdIndicator.className = "hold-indicator";
     btn.appendChild(holdIndicator);
     // initial haptic tap
-    vibrate(10);
+    // vibrate(10);
     loop();
   });
   const cancelers = ["pointerup", "pointerleave", "pointercancel"];
@@ -167,7 +162,9 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     })
   );
 
-  btn.addEventListener("mouseenter", () => {
+  btn.addEventListener("touchstart", (e) => {
+    // Prevent default to avoid triggering pointerdown again
+    e.preventDefault();
     const rect = btn.getBoundingClientRect();
     for (let i = 0; i < 20; i++) {
       hearts.push(
@@ -177,7 +174,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
         )
       );
     }
-  });
+  }, { passive: false });
 });
 
 // Basic touch swipe navigation
@@ -607,13 +604,13 @@ document.addEventListener(
     const now = performance.now();
     if (now - lastClickTime < 300) {
       fireworks.push(makeFirework(e.clientX, e.clientY));
-      vibrate([10, 40, 10]);
+      // vibrate([10, 40, 10]);
     }
     lastClickTime = now;
     const isButton = e.target.closest("button");
     if (!isButton) playPop(1.05);
     // subtle haptic on general taps
-    vibrate(5);
+    // vibrate(5);
     // Ensure audio context is active after first interaction
     if (audioCtx && audioCtx.state === "suspended") {
       audioCtx.resume().catch(() => {});
