@@ -25,6 +25,8 @@ function showSlide(i) {
     "active",
     direction === "right" ? "enter-right" : "enter-left"
   );
+  // Subtle whoosh on slide transition
+  playWhoosh(direction);
   // Hide content and show reveal button for the active slide
   const activeSlide = slides[i];
   const content = activeSlide.querySelector(".content");
@@ -140,7 +142,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
   let holdRAF = null;
   let holdIndicator = null;
   let milestone = 0; // for haptic progress pulses
-  const required = 3000; // 3 seconds
+  const required = 500; // 0.5 seconds
 
   const cleanupHold = () => {
     holding = false;
@@ -152,6 +154,8 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       cancelAnimationFrame(holdRAF);
       holdRAF = null;
     }
+    // Stop loading suspense tone
+    stopSuspense();
     // Reset button transform
     btn.style.transform = "";
   };
@@ -163,6 +167,8 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     if (holdIndicator) {
       holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
     }
+    // Update loading tone with progress
+    updateSuspense(p);
     // Aggressive shake that intensifies with progress
     const shakeIntensity = p * 20; // 0 to 20 pixels - VIOLENT
     const shakeSpeed = 10 + p * 35; // faster as progress increases
@@ -188,6 +194,11 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       cleanupHold();
       vibrate([50, 100, 50, 100, 50]);
       triggerRevealForButton(btn, variant);
+      // Finish loading tone and play success chime
+      stopSuspense();
+      playSuccess();
+      // Play a big fat boom shortly after success
+      setTimeout(() => playBoom(), 120);
       // MASSIVE EXPLOSION EFFECT
       const rect = btn.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
@@ -231,6 +242,8 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     btn.appendChild(holdIndicator);
     // initial haptic tap
     vibrate(10);
+    // Start a gentle suspense (loading) tone
+    playSuspense();
     loop();
   });
   const cancelers = ["pointerup", "pointerleave", "pointercancel"];
@@ -928,19 +941,467 @@ document.addEventListener(
   true
 );
 
-// Audio disabled
-const AudioCtx = null;
-const audioCtx = null;
+// Web Audio – satisfying UI and loading sounds
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
 
-function playPop(pitch = 1) {}
-function playClickHigh() {}
-function playClickLow() {}
-function playBell() {}
-function playSpark() {}
-function playHeart() {}
-function playSuspense() {}
-function stopSuspense() {}
-function playSuccess() {}
+function ensureAudio() {
+  if (!audioCtx && AudioCtx) {
+    audioCtx = new AudioCtx();
+  }
+}
+
+function now() {
+  return audioCtx ? audioCtx.currentTime : 0;
+}
+
+function makeGain(value = 0) {
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(value, now());
+  return g;
+}
+
+function quickEnv(g, dur = 0.15, peak = 0.08) {
+  const t = now();
+  g.gain.cancelScheduledValues(t);
+  g.gain.setValueAtTime(0.0, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * 0.001), t + dur);
+}
+
+function playBeep(freq = 440, type = "sine", dur = 0.12, gain = 0.08) {
+  ensureAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now());
+  const g = makeGain(0);
+  quickEnv(g, dur, gain);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(now() + dur + 0.02);
+}
+
+function playPop(pitch = 1) {
+  // Soft pop: short triangle ping with slight pitch sweep
+  ensureAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = "triangle";
+  const t0 = now();
+  osc.frequency.setValueAtTime(180 * pitch, t0);
+  osc.frequency.exponentialRampToValueAtTime(110 * pitch, t0 + 0.12);
+  const g = makeGain(0);
+  quickEnv(g, 0.14, 0.06);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(t0 + 0.16);
+}
+
+function playClickHigh() {
+  playBeep(900, "square", 0.07, 0.05);
+}
+
+function playClickLow() {
+  playBeep(300, "square", 0.08, 0.06);
+}
+
+function playBell() {
+  // Simple chime: stacked partials with gentle decay
+  ensureAudio();
+  if (!audioCtx) return;
+  const freqs = [660, 990, 1320];
+  const tEnd = now() + 0.8;
+  freqs.forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(f, now());
+    const g = makeGain(0);
+    const peak = 0.06 / (i + 1);
+    quickEnv(g, 0.7, peak);
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(tEnd);
+  });
+}
+
+function playSpark() {
+  // Bright ping
+  playBeep(1600, "sine", 0.09, 0.05);
+}
+
+function playHeart() {
+  // Warm thump
+  ensureAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = "sine";
+  const t0 = now();
+  osc.frequency.setValueAtTime(120, t0);
+  osc.frequency.exponentialRampToValueAtTime(70, t0 + 0.12);
+  const g = makeGain(0);
+  quickEnv(g, 0.16, 0.08);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(t0 + 0.2);
+}
+
+// Suspense (loading) tone: rises with progress
+let suspense = null;
+function playSuspense() {
+  ensureAudio();
+  if (!audioCtx || suspense) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = "sawtooth";
+  const g = makeGain(0);
+  // Soft start
+  g.gain.setValueAtTime(0.0001, now());
+  g.gain.exponentialRampToValueAtTime(0.02, now() + 0.1);
+  osc.frequency.setValueAtTime(220, now());
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start();
+  suspense = { osc, gain: g };
+}
+
+function updateSuspense(p) {
+  if (!suspense || !audioCtx) return;
+  const t = now();
+  const targetFreq = 220 + p * 900; // 220Hz -> ~1120Hz
+  suspense.osc.frequency.cancelScheduledValues(t);
+  suspense.osc.frequency.linearRampToValueAtTime(targetFreq, t + 0.05);
+  // Slightly increase loudness as we progress
+  const targetGain = 0.02 + p * 0.03;
+  suspense.gain.gain.cancelScheduledValues(t);
+  suspense.gain.gain.linearRampToValueAtTime(targetGain, t + 0.05);
+}
+
+function stopSuspense() {
+  if (!suspense || !audioCtx) return;
+  const t = now();
+  suspense.gain.gain.cancelScheduledValues(t);
+  suspense.gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+  suspense.osc.stop(t + 0.14);
+  suspense = null;
+}
+
+function playSuccess() {
+  // Pleasant success triad
+  ensureAudio();
+  if (!audioCtx) return;
+  [523.25, 659.25, 783.99].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(f, now());
+    const g = makeGain(0);
+    const dur = 0.35 + i * 0.1;
+    quickEnv(g, dur, 0.06 / (i + 1));
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(now() + dur + 0.02);
+  });
+}
+
+function playWhoosh(direction) {
+  // Short filtered-noise sweep for slide transitions
+  ensureAudio();
+  if (!audioCtx) return;
+  const bufferSize = 0.2 * audioCtx.sampleRate;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "bandpass";
+  const startFreq = direction === "right" ? 400 : 1200;
+  const endFreq = direction === "right" ? 1600 : 300;
+  filter.frequency.setValueAtTime(startFreq, now());
+  filter.frequency.linearRampToValueAtTime(endFreq, now() + 0.18);
+  const g = makeGain(0);
+  quickEnv(g, 0.18, 0.06);
+  src.connect(filter).connect(g).connect(audioCtx.destination);
+  src.start();
+  src.stop(now() + 0.22);
+}
+
+function playSiren(cycles = 2) {
+  // Police-style siren: pitch wail with slight vibrato
+  ensureAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
+  }
+
+  const t0 = now();
+  const upDur = 0.9;
+  const downDur = 0.9;
+  const cycleDur = upDur + downDur;
+  const total = cycles * cycleDur + 0.1;
+
+  // Master chain
+  const comp = audioCtx.createDynamicsCompressor();
+  comp.threshold.setValueAtTime(-10, t0);
+  comp.knee.setValueAtTime(20, t0);
+  comp.ratio.setValueAtTime(2.5, t0);
+  comp.attack.setValueAtTime(0.003, t0);
+  comp.release.setValueAtTime(0.35, t0);
+  const master = makeGain(0);
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.exponentialRampToValueAtTime(0.35, t0 + 0.08);
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
+  comp.connect(master).connect(audioCtx.destination);
+
+  // Tone voices
+  const v1 = audioCtx.createOscillator();
+  const v2 = audioCtx.createOscillator();
+  v1.type = "sawtooth";
+  v2.type = "square";
+  const baseStart = 650; // Hz
+  const baseEnd = 1100; // Hz
+  v1.frequency.setValueAtTime(baseStart, t0);
+  v2.frequency.setValueAtTime(baseStart * 1.03, t0);
+
+  // Vibrato LFO
+  const lfo = audioCtx.createOscillator();
+  lfo.type = "sine";
+  lfo.frequency.setValueAtTime(6, t0); // 6 Hz vibrato
+  const lfoGain = audioCtx.createGain();
+  lfoGain.gain.setValueAtTime(12, t0); // ±12 Hz
+  lfo.connect(lfoGain);
+  lfoGain.connect(v1.frequency);
+  lfoGain.connect(v2.frequency);
+
+  // Timbre filter
+  const bp = audioCtx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.setValueAtTime(1200, t0);
+  bp.Q.setValueAtTime(0.6, t0);
+
+  const g1 = makeGain(0.18);
+  const g2 = makeGain(0.12);
+  v1.connect(g1).connect(bp).connect(comp);
+  v2.connect(g2).connect(bp).connect(comp);
+
+  // Schedule wail cycles
+  for (let c = 0; c < cycles; c++) {
+    const cs = t0 + c * cycleDur;
+    // up
+    v1.frequency.linearRampToValueAtTime(baseEnd, cs + upDur);
+    v2.frequency.linearRampToValueAtTime(baseEnd * 1.03, cs + upDur);
+    // down
+    v1.frequency.linearRampToValueAtTime(baseStart, cs + cycleDur);
+    v2.frequency.linearRampToValueAtTime(baseStart * 1.03, cs + cycleDur);
+  }
+
+  v1.start(t0);
+  v2.start(t0);
+  lfo.start(t0);
+  v1.stop(t0 + total);
+  v2.stop(t0 + total);
+  lfo.stop(t0 + total);
+}
+
+function playParty() {
+  // Party vibe: horn wail + chord stabs + claps + sparkles
+  ensureAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
+  }
+
+  const t0 = now();
+  const total = 1.6;
+
+  // Master chain
+  const comp = audioCtx.createDynamicsCompressor();
+  comp.threshold.setValueAtTime(-12, t0);
+  comp.knee.setValueAtTime(20, t0);
+  comp.ratio.setValueAtTime(2.0, t0);
+  comp.attack.setValueAtTime(0.003, t0);
+  comp.release.setValueAtTime(0.4, t0);
+  const master = makeGain(0);
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.exponentialRampToValueAtTime(0.5, t0 + 0.08);
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
+  comp.connect(master).connect(audioCtx.destination);
+
+  // Party horn (wail)
+  const horn = audioCtx.createOscillator();
+  horn.type = "sawtooth";
+  horn.frequency.setValueAtTime(330, t0);
+  horn.frequency.linearRampToValueAtTime(880, t0 + 0.5);
+  horn.frequency.linearRampToValueAtTime(600, t0 + 0.85);
+  const hornGain = makeGain(0);
+  quickEnv(hornGain, 0.9, 0.35);
+  // Gentle bandpass to shape timbre
+  const hornBP = audioCtx.createBiquadFilter();
+  hornBP.type = "bandpass";
+  hornBP.frequency.setValueAtTime(1200, t0);
+  hornBP.Q.setValueAtTime(0.7, t0);
+  horn.connect(hornGain).connect(hornBP).connect(comp);
+  horn.start(t0);
+  horn.stop(t0 + 1.0);
+
+  // Chord stabs (C major: C5 E5 G5)
+  [523.25, 659.25, 783.99].forEach((f, i) => {
+    const o = audioCtx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(f, t0 + 0.18);
+    const g = makeGain(0);
+    quickEnv(g, 0.22 + i * 0.06, 0.12 / (i + 1));
+    o.connect(g).connect(comp);
+    o.start(t0 + 0.18);
+    o.stop(t0 + 0.5 + i * 0.05);
+  });
+
+  // Handclaps: bandpass-filtered noise bursts
+  function clap(at) {
+    const len = 0.25 * audioCtx.sampleRate;
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.setValueAtTime(1800, at);
+    bp.Q.setValueAtTime(0.8, at);
+    const g = makeGain(0);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.25, at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
+    src.connect(bp).connect(g).connect(comp);
+    src.start(at);
+    src.stop(at + 0.22);
+  }
+  clap(t0 + 0.32);
+  clap(t0 + 0.62);
+
+  // Sparkle pings
+  [1400, 1650, 1900].forEach((f, i) => {
+    const o = audioCtx.createOscillator();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(f, t0 + 0.4 + i * 0.06);
+    const g = makeGain(0);
+    quickEnv(g, 0.12, 0.08);
+    o.connect(g).connect(comp);
+    o.start(t0 + 0.4 + i * 0.06);
+    o.stop(t0 + 0.55 + i * 0.06);
+  });
+}
+
+function playBoom() {
+  // Big boom: sub thump + noise burst with downward sweep
+  ensureAudio();
+  if (!audioCtx) return;
+
+  // Ensure context is running (iOS/safari quirks)
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
+  }
+
+  const t0 = now();
+
+  // Master chain: stronger compressor + bass boost + master envelope
+  const comp = audioCtx.createDynamicsCompressor();
+  comp.threshold.setValueAtTime(-16, t0);
+  comp.knee.setValueAtTime(22, t0);
+  comp.ratio.setValueAtTime(3.5, t0);
+  comp.attack.setValueAtTime(0.002, t0);
+  comp.release.setValueAtTime(0.5, t0);
+  const bass = audioCtx.createBiquadFilter();
+  bass.type = "lowshelf";
+  bass.frequency.setValueAtTime(120, t0);
+  bass.gain.setValueAtTime(12, t0);
+  const master = makeGain(0);
+  // Fast rise to loud peak, long decay
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.exponentialRampToValueAtTime(0.9, t0 + 0.05);
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.6);
+  comp.connect(bass).connect(master).connect(audioCtx.destination);
+
+  // Sub layer 1 (sine)
+  const sub = audioCtx.createOscillator();
+  sub.type = "sine";
+  sub.frequency.setValueAtTime(70, t0);
+  sub.frequency.exponentialRampToValueAtTime(35, t0 + 0.6);
+  const subGain = makeGain(0);
+  quickEnv(subGain, 0.8, 0.75);
+  sub.connect(subGain).connect(comp);
+  sub.start();
+  sub.stop(t0 + 0.9);
+
+  // Sub layer 2 (square, detuned for fatness)
+  const sub2 = audioCtx.createOscillator();
+  sub2.type = "square";
+  sub2.frequency.setValueAtTime(85, t0);
+  sub2.frequency.exponentialRampToValueAtTime(42, t0 + 0.55);
+  const sub2Gain = makeGain(0);
+  quickEnv(sub2Gain, 0.7, 0.35);
+  sub2.connect(sub2Gain).connect(comp);
+  sub2.start();
+  sub2.stop(t0 + 0.8);
+
+  // Saturation waveshaper for thickness
+  function makeSaturator(amount = 2.0) {
+    const ws = audioCtx.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) {
+      const x = i / 512 - 1;
+      curve[i] = Math.tanh(amount * x);
+    }
+    ws.curve = curve;
+    ws.oversample = "4x";
+    return ws;
+  }
+
+  // Noise burst (longer tail, saturated)
+  const len = 1.2 * audioCtx.sampleRate;
+  const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const channel = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) channel[i] = Math.random() * 2 - 1;
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buf;
+  const lp = audioCtx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.setValueAtTime(900, t0);
+  lp.frequency.exponentialRampToValueAtTime(140, t0 + 1.0);
+  const saturator = makeSaturator(3.0);
+  const nGain = makeGain(0);
+  nGain.gain.setValueAtTime(0.0001, t0);
+  nGain.gain.exponentialRampToValueAtTime(0.6, t0 + 0.08);
+  nGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.1);
+  noise.connect(lp).connect(saturator).connect(nGain).connect(comp);
+  noise.start(t0);
+  noise.stop(t0 + 1.2);
+
+  // Transient crack
+  const crackOsc = audioCtx.createOscillator();
+  crackOsc.type = "square";
+  crackOsc.frequency.setValueAtTime(2200, t0);
+  const crackGain = makeGain(0);
+  quickEnv(crackGain, 0.05, 0.18);
+  const hp = audioCtx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.setValueAtTime(1500, t0);
+  crackOsc.connect(hp).connect(crackGain).connect(comp);
+  crackOsc.start(t0);
+  crackOsc.stop(t0 + 0.07);
+
+  // Stereo delay send for space
+  const send = makeGain(0.25);
+  const dL = audioCtx.createDelay(0.5);
+  const dR = audioCtx.createDelay(0.5);
+  dL.delayTime.setValueAtTime(0.12, t0);
+  dR.delayTime.setValueAtTime(0.17, t0);
+  const pL = audioCtx.createStereoPanner();
+  const pR = audioCtx.createStereoPanner();
+  pL.pan.setValueAtTime(-0.7, t0);
+  pR.pan.setValueAtTime(0.7, t0);
+  comp.connect(send);
+  send.connect(dL).connect(pL).connect(audioCtx.destination);
+  send.connect(dR).connect(pR).connect(audioCtx.destination);
+}
 
 // Turbo mode removed per request
 
