@@ -525,10 +525,8 @@ ul {
   cursor: pointer;
   margin: 22px 0;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 
-    0 20px 50px rgba(255, 209, 102, 0.6),
-    0 0 60px rgba(255, 128, 191, 0.4),
-    inset 0 2px 8px rgba(255, 255, 255, 0.6),
+  box-shadow: 0 20px 50px rgba(255, 209, 102, 0.6),
+    0 0 60px rgba(255, 128, 191, 0.4), inset 0 2px 8px rgba(255, 255, 255, 0.6),
     inset 0 -4px 12px rgba(0, 0, 0, 0.2);
   transform: translateZ(20px) scale(1);
   position: relative;
@@ -538,7 +536,7 @@ ul {
 }
 
 .reveal-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
@@ -552,20 +550,18 @@ ul {
 }
 
 @keyframes pulse {
-  0%, 100% { 
+  0%,
+  100% {
     transform: translateZ(20px) scale(1);
-    box-shadow: 
-      0 20px 50px rgba(255, 209, 102, 0.6),
+    box-shadow: 0 20px 50px rgba(255, 209, 102, 0.6),
       0 0 60px rgba(255, 128, 191, 0.4),
       inset 0 2px 8px rgba(255, 255, 255, 0.6),
       inset 0 -4px 12px rgba(0, 0, 0, 0.2);
   }
-  50% { 
+  50% {
     transform: translateZ(20px) scale(1.05);
-    box-shadow: 
-      0 25px 60px rgba(255, 209, 102, 0.8),
-      0 0 80px rgba(255, 128, 191, 0.6),
-      0 0 100px rgba(123, 223, 242, 0.3),
+    box-shadow: 0 25px 60px rgba(255, 209, 102, 0.8),
+      0 0 80px rgba(255, 128, 191, 0.6), 0 0 100px rgba(123, 223, 242, 0.3),
       inset 0 2px 8px rgba(255, 255, 255, 0.7),
       inset 0 -4px 12px rgba(0, 0, 0, 0.2);
   }
@@ -573,10 +569,8 @@ ul {
 
 .reveal-btn:hover {
   transform: translateZ(20px) translateY(-6px) scale(1.08);
-  box-shadow: 
-    0 30px 70px rgba(255, 209, 102, 0.8),
-    0 0 90px rgba(255, 128, 191, 0.7),
-    0 0 120px rgba(123, 223, 242, 0.4),
+  box-shadow: 0 30px 70px rgba(255, 209, 102, 0.8),
+    0 0 90px rgba(255, 128, 191, 0.7), 0 0 120px rgba(123, 223, 242, 0.4),
     inset 0 3px 12px rgba(255, 255, 255, 0.8),
     inset 0 -5px 15px rgba(0, 0, 0, 0.3);
   animation: pulse 1s ease-in-out infinite;
@@ -585,19 +579,24 @@ ul {
 
 .reveal-btn:active {
   transform: translateZ(20px) translateY(2px) scale(0.98);
-  box-shadow: 
-    0 10px 30px rgba(255, 209, 102, 0.7),
-    0 0 50px rgba(255, 128, 191, 0.5),
-    inset 0 6px 20px rgba(0, 0, 0, 0.4),
+  box-shadow: 0 10px 30px rgba(255, 209, 102, 0.7),
+    0 0 50px rgba(255, 128, 191, 0.5), inset 0 6px 20px rgba(0, 0, 0, 0.4),
     inset 0 1px 4px rgba(255, 255, 255, 0.3);
   filter: brightness(0.95);
   animation: explosion-shake 0.15s ease-in-out;
 }
 
 @keyframes explosion-shake {
-  0%, 100% { transform: translateZ(20px) translateY(2px) scale(0.98) rotate(0deg); }
-  25% { transform: translateZ(20px) translateY(2px) scale(0.96) rotate(-2deg); }
-  75% { transform: translateZ(20px) translateY(2px) scale(0.96) rotate(2deg); }
+  0%,
+  100% {
+    transform: translateZ(20px) translateY(2px) scale(0.98) rotate(0deg);
+  }
+  25% {
+    transform: translateZ(20px) translateY(2px) scale(0.96) rotate(-2deg);
+  }
+  75% {
+    transform: translateZ(20px) translateY(2px) scale(0.96) rotate(2deg);
+  }
 }
 
 /* Hold-to-reveal progress ring overlay */
@@ -610,25 +609,20 @@ ul {
     var(--accent) 0deg,
     rgba(255, 255, 255, 0.12) 0deg
   );
-  box-shadow: 
-    inset 0 0 0 6px rgba(255, 255, 255, 0.15),
-    0 0 30px rgba(255, 209, 102, 0.8),
-    0 0 50px rgba(255, 128, 191, 0.6);
+  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.15),
+    0 0 30px rgba(255, 209, 102, 0.8), 0 0 50px rgba(255, 128, 191, 0.6);
   animation: progress-pulse 0.5s ease-in-out infinite;
 }
 
 @keyframes progress-pulse {
-  0%, 100% { 
-    box-shadow: 
-      inset 0 0 0 6px rgba(255, 255, 255, 0.15),
-      0 0 30px rgba(255, 209, 102, 0.8),
-      0 0 50px rgba(255, 128, 191, 0.6);
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.15),
+      0 0 30px rgba(255, 209, 102, 0.8), 0 0 50px rgba(255, 128, 191, 0.6);
   }
-  50% { 
-    box-shadow: 
-      inset 0 0 0 6px rgba(255, 255, 255, 0.3),
-      0 0 50px rgba(255, 209, 102, 1),
-      0 0 80px rgba(255, 128, 191, 0.9),
+  50% {
+    box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.3),
+      0 0 50px rgba(255, 209, 102, 1), 0 0 80px rgba(255, 128, 191, 0.9),
       0 0 110px rgba(123, 223, 242, 0.5);
   }
 }

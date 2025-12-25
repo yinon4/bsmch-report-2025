@@ -153,7 +153,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       holdRAF = null;
     }
     // Reset button transform
-    btn.style.transform = '';
+    btn.style.transform = "";
   };
 
   const loop = () => {
@@ -166,11 +166,15 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     // Aggressive shake that intensifies with progress
     const shakeIntensity = p * 8; // 0 to 8 pixels
     const shakeSpeed = 10 + p * 20; // faster as progress increases
-    const shakeX = Math.sin(performance.now() / (50 - shakeSpeed)) * shakeIntensity;
-    const shakeY = Math.cos(performance.now() / (60 - shakeSpeed)) * shakeIntensity * 0.5;
+    const shakeX =
+      Math.sin(performance.now() / (50 - shakeSpeed)) * shakeIntensity;
+    const shakeY =
+      Math.cos(performance.now() / (60 - shakeSpeed)) * shakeIntensity * 0.5;
     const shakeRot = Math.sin(performance.now() / (40 - shakeSpeed)) * p * 3; // up to 3 degrees
-    btn.style.transform = `translateZ(20px) translate(${shakeX}px, ${shakeY}px) rotate(${shakeRot}deg) scale(${1 - p * 0.05})`;
-    
+    btn.style.transform = `translateZ(20px) translate(${shakeX}px, ${shakeY}px) rotate(${shakeRot}deg) scale(${
+      1 - p * 0.05
+    })`;
+
     // Haptic feedback milestones at ~33% and ~66%
     if (p >= 0.33 && milestone < 1) {
       vibrate(12);
@@ -943,21 +947,23 @@ function triggerColorBurst() {
   const burst = document.createElement("div");
   burst.className = "color-burst";
   document.body.appendChild(burst);
-  
+
   // Trigger animation
   requestAnimationFrame(() => {
     burst.classList.add("active");
   });
-  
+
   // Remove after animation
   setTimeout(() => {
     burst.remove();
   }, 1000);
-  
+
   // Add multiple fireworks
   for (let i = 0; i < 8; i++) {
     setTimeout(() => {
-      fireworks.push(makeFirework(rand(cw * 0.2, cw * 0.8), rand(ch * 0.2, ch * 0.6)));
+      fireworks.push(
+        makeFirework(rand(cw * 0.2, cw * 0.8), rand(ch * 0.2, ch * 0.6))
+      );
     }, i * 80);
   }
 }
