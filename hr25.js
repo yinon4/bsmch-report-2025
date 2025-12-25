@@ -279,10 +279,13 @@ document.addEventListener(
   (e) => {
     if (touchStartX === null) return;
     // Don't swipe if started on a button
-    if (touchStartTarget && (touchStartTarget.classList.contains('reveal-btn') || 
-        touchStartTarget.classList.contains('nav-btn') ||
-        touchStartTarget.closest('.reveal-btn') ||
-        touchStartTarget.closest('.nav-btn'))) {
+    if (
+      touchStartTarget &&
+      (touchStartTarget.classList.contains("reveal-btn") ||
+        touchStartTarget.classList.contains("nav-btn") ||
+        touchStartTarget.closest(".reveal-btn") ||
+        touchStartTarget.closest(".nav-btn"))
+    ) {
       touchStartX = null;
       touchStartY = null;
       touchStartTarget = null;
