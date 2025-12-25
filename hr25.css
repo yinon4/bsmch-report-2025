@@ -178,17 +178,23 @@ h1 {
   font-size: clamp(3rem, 10vw, 5rem);
   margin: 72px 0 8px 0;
   transform: translateZ(30px);
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8);
+  color: #ffffff;
 }
 
 h2 {
   font-size: clamp(2.4rem, 8vw, 4rem);
   margin: 6px 0;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8);
+  color: #ffffff;
 }
 
 p,
 li {
   font-size: clamp(2rem, 7.5vw, 3.2rem);
   margin: 12px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.8);
+  color: #ffffff;
 }
 
 ul {

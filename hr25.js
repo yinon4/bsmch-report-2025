@@ -69,13 +69,13 @@ document.querySelectorAll(".prev-btn").forEach((btn) => {
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     // Spawn bubbles around the button
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 4; i++) {
       bubbles.push(
         makeBubble(centerX + rand(-30, 30), centerY + rand(-30, 30), true)
       );
     }
     // Small confetti burst
-    spawnConfetti(centerX, centerY, 15);
+    spawnConfetti(centerX, centerY, 8);
     // Darken background
     triggerDarken();
   });
@@ -91,13 +91,13 @@ document.querySelectorAll(".next-btn").forEach((btn) => {
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     // Spawn bubbles around the button
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {
       bubbles.push(
         makeBubble(centerX + rand(-30, 30), centerY + rand(-30, 30), true)
       );
     }
     // Small confetti burst
-    spawnConfetti(centerX, centerY, 15);
+    spawnConfetti(centerX, centerY, 3);
     // Darken background
     triggerDarken();
   });
@@ -124,7 +124,7 @@ function triggerRevealForButton(btn, variant) {
       makeFirework(rect.left + rect.width / 2, rect.top + rect.height / 2)
     );
     spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, 60);
+    spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, 20);
     if (variant === "spark") playSpark();
     else if (variant === "bell") playBell();
     else playPop();
@@ -164,13 +164,13 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
     }
     // Aggressive shake that intensifies with progress
-    const shakeIntensity = p * 8; // 0 to 8 pixels
-    const shakeSpeed = 10 + p * 20; // faster as progress increases
+    const shakeIntensity = p * 20; // 0 to 20 pixels - VIOLENT
+    const shakeSpeed = 10 + p * 35; // faster as progress increases
     const shakeX =
       Math.sin(performance.now() / (50 - shakeSpeed)) * shakeIntensity;
     const shakeY =
-      Math.cos(performance.now() / (60 - shakeSpeed)) * shakeIntensity * 0.5;
-    const shakeRot = Math.sin(performance.now() / (40 - shakeSpeed)) * p * 3; // up to 3 degrees
+      Math.cos(performance.now() / (60 - shakeSpeed)) * shakeIntensity * 0.8;
+    const shakeRot = Math.sin(performance.now() / (40 - shakeSpeed)) * p * 8; // up to 8 degrees
     btn.style.transform = `translateZ(20px) translate(${shakeX}px, ${shakeY}px) rotate(${shakeRot}deg) scale(${
       1 - p * 0.05
     })`;
@@ -193,23 +193,23 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
       // HUGE confetti burst - multiple waves
-      spawnConfetti(centerX, centerY, 250);
-      setTimeout(() => spawnConfetti(centerX, centerY, 150), 100);
-      setTimeout(() => spawnConfetti(centerX, centerY, 100), 200);
+      spawnConfetti(centerX, centerY, 60);
+      setTimeout(() => spawnConfetti(centerX, centerY, 30), 100);
+      setTimeout(() => spawnConfetti(centerX, centerY, 20), 200);
       // Massive bubble explosion
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < 100; i++) {
         bubbles.push(
           makeBubble(centerX + rand(-150, 150), centerY + rand(-150, 150), true)
         );
       }
       // Heart burst - huge
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 30; i++) {
         hearts.push(
           makeHeart(centerX + rand(-180, 180), centerY + rand(-180, 180))
         );
       }
       // Sparkle explosion - massive
-      for (let i = 0; i < 120; i++) {
+      for (let i = 0; i < 60; i++) {
         sparkles.push(
           makeSparkle(centerX + rand(-200, 200), centerY + rand(-200, 200))
         );
@@ -301,17 +301,17 @@ document.addEventListener(
     }
 
     // Spawn bubbles along the drag path
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       bubbles.push(makeBubble(x + rand(-15, 15), y + rand(-15, 15), true));
     }
 
     // Spawn sparkles occasionally
-    if (Math.random() < 0.4) {
+    if (Math.random() < 0.2) {
       sparkles.push(makeSparkle(x + rand(-20, 20), y + rand(-20, 20)));
     }
 
     // Spawn hearts occasionally
-    if (Math.random() < 0.2) {
+    if (Math.random() < 0.1) {
       hearts.push(makeHeart(x + rand(-25, 25), y + rand(-25, 25)));
     }
   },
@@ -386,11 +386,11 @@ function resizeCanvas() {
   while (bubbles.length < target) bubbles.push(makeBubble());
   if (bubbles.length > target) bubbles.length = target;
   // stars
-  let starTarget = Math.max(20, Math.floor((cw * ch) / 50000));
+  let starTarget = Math.max(10, Math.floor((cw * ch) / 70000));
   while (stars.length < starTarget) stars.push(makeStar());
   if (stars.length > starTarget) stars.length = starTarget;
   // snowflakes
-  snowTarget = Math.max(30, Math.floor((cw * ch) / 25000));
+  snowTarget = Math.max(20, Math.floor((cw * ch) / 35000));
   while (snowflakes.length < snowTarget) snowflakes.push(makeSnowflake());
   if (snowflakes.length > snowTarget) snowflakes.length = snowTarget;
 }
@@ -500,8 +500,8 @@ function animate() {
     if (f.every((p) => p.life <= 0)) fireworks.splice(i, 1);
   }
   // random heart spawn
-  if (Math.random() < 0.01) {
-    for (let i = 0; i < rand(3, 6); i++) {
+  if (Math.random() < 0.005) {
+    for (let i = 0; i < rand(2, 4); i++) {
       hearts.push(makeHeart(rand(0, cw), rand(0, ch)));
     }
   }
@@ -512,7 +512,7 @@ function spawnBurst(x, y) {
   const rect = { left: 0, top: 0 };
   const gx = x - rect.left;
   const gy = y - rect.top;
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 25; i++) {
     bubbles.push(makeBubble(gx + rand(-20, 20), gy + rand(-10, 10), true));
   }
 }
@@ -753,7 +753,7 @@ document.addEventListener(
   "pointerdown",
   (e) => {
     pointerHandler(e.clientX, e.clientY);
-    spawnConfetti(e.clientX, e.clientY, 30);
+    spawnConfetti(e.clientX, e.clientY, 10);
     const now = performance.now();
     if (now - lastClickTime < 300) {
       fireworks.push(makeFirework(e.clientX, e.clientY));
@@ -774,7 +774,7 @@ document.addEventListener(
   "dblclick",
   (e) => {
     // BIG HEART BURST on double click - varied sizes, exploding outward!
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 50; i++) {
       // Most hearts are small, some are massive, few are HUGE
       let size;
       let speedMultiplier;
@@ -813,9 +813,9 @@ document.addEventListener(
       heart.hue = rand(300, 360);
       hearts.push(heart);
     }
-    spawnConfetti(e.clientX, e.clientY, 100);
+    spawnConfetti(e.clientX, e.clientY, 20);
     vibrate([20, 100, 20]);
-    playBell();
+    playHeart(); // Play heart sound for double-click burst
   },
   { passive: true }
 );
@@ -916,7 +916,7 @@ applyPalette(palettes[paletteIndex]);
 function cyclePalette() {
   paletteIndex = (paletteIndex + 1) % palettes.length;
   applyPalette(palettes[paletteIndex]);
-  spawnConfetti(cw / 2, ch * 0.2, 100);
+  spawnConfetti(cw / 2, ch * 0.2, 30);
   playPop(1.25);
 }
 // Global listener: ANY click cycles the palette
@@ -928,120 +928,19 @@ document.addEventListener(
   true
 );
 
-// Simple pop sound via WebAudio
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-const audioCtx = AudioCtx ? new AudioCtx() : null;
+// Audio disabled
+const AudioCtx = null;
+const audioCtx = null;
 
-function playPop(pitch = 1) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const osc2 = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  const t = audioCtx.currentTime;
-  osc.type = "triangle";
-  osc2.type = "sine";
-  osc.frequency.setValueAtTime(220 * pitch, t);
-  osc2.frequency.setValueAtTime(440 * pitch, t);
-  gain.gain.setValueAtTime(0.001, t);
-  gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-  osc.connect(gain);
-  osc2.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  osc2.start();
-  osc.stop(t + 0.22);
-  osc2.stop(t + 0.22);
-}
-
-// Additional button-specific sounds
-function playClickHigh() {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const o1 = audioCtx.createOscillator();
-  const o2 = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o1.type = "square";
-  o2.type = "triangle";
-  o1.frequency.setValueAtTime(720, t);
-  o2.frequency.setValueAtTime(1080, t);
-  g.gain.setValueAtTime(0.001, t);
-  g.gain.exponentialRampToValueAtTime(0.22, t + 0.015);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-  o1.connect(g);
-  o2.connect(g);
-  g.connect(audioCtx.destination);
-  o1.start();
-  o2.start();
-  o1.stop(t + 0.18);
-  o2.stop(t + 0.18);
-}
-
-function playClickLow() {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const o1 = audioCtx.createOscillator();
-  const o2 = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o1.type = "sawtooth";
-  o2.type = "sine";
-  o1.frequency.setValueAtTime(200, t);
-  o2.frequency.setValueAtTime(300, t);
-  g.gain.setValueAtTime(0.001, t);
-  g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-  o1.connect(g);
-  o2.connect(g);
-  g.connect(audioCtx.destination);
-  o1.start();
-  o2.start();
-  o1.stop(t + 0.22);
-  o2.stop(t + 0.22);
-}
-
-function playBell() {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const o1 = audioCtx.createOscillator();
-  const o2 = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o1.type = "sine";
-  o2.type = "sine";
-  o1.frequency.setValueAtTime(880, t);
-  o2.frequency.setValueAtTime(1320, t);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-  o1.connect(g);
-  o2.connect(g);
-  g.connect(audioCtx.destination);
-  o1.start();
-  o2.start();
-  o1.stop(t + 0.6);
-  o2.stop(t + 0.6);
-}
-
-function playSpark() {
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const o1 = audioCtx.createOscillator();
-  const o2 = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o1.type = "triangle";
-  o2.type = "square";
-  o1.frequency.setValueAtTime(1200, t);
-  o2.frequency.setValueAtTime(1600, t);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.22, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-  o1.connect(g);
-  o2.connect(g);
-  g.connect(audioCtx.destination);
-  o1.start();
-  o2.start();
-  o1.stop(t + 0.16);
-  o2.stop(t + 0.16);
-}
+function playPop(pitch = 1) {}
+function playClickHigh() {}
+function playClickLow() {}
+function playBell() {}
+function playSpark() {}
+function playHeart() {}
+function playSuspense() {}
+function stopSuspense() {}
+function playSuccess() {}
 
 // Turbo mode removed per request
 
