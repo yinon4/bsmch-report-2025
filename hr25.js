@@ -1,0 +1,580 @@
+const slides = document.querySelectorAll(".slide");
+let index = 0;
+let prevIndex = 0;
+
+function showSlide(i) {
+  const direction = i > prevIndex ? "right" : "left";
+  const leaving = slides[prevIndex];
+  if (leaving) {
+    leaving.classList.add(
+      "leaving",
+      direction === "right" ? "exit-left" : "exit-right"
+    );
+    leaving.addEventListener(
+      "animationend",
+      () => {
+        leaving.classList.remove("leaving", "exit-left", "exit-right");
+      },
+      { once: true }
+    );
+  }
+  slides.forEach((s) =>
+    s.classList.remove("active", "enter-left", "enter-right")
+  );
+  slides[i].classList.add(
+    "active",
+    direction === "right" ? "enter-right" : "enter-left"
+  );
+  // Hide content and show reveal button for the active slide
+  const activeSlide = slides[i];
+  const content = activeSlide.querySelector(".content");
+  const revealBtn = activeSlide.querySelector(".reveal-btn");
+  if (content) content.classList.add("hidden");
+  if (revealBtn) revealBtn.style.display = "block";
+  prevIndex = i;
+}
+
+function nextSlide() {
+  if (index < slides.length - 1) {
+    index++;
+    showSlide(index);
+  }
+}
+
+function prevSlide() {
+  if (index > 0) {
+    index--;
+    showSlide(index);
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight" || e.key === " ") {
+    nextSlide();
+  }
+  if (e.key === "ArrowLeft") {
+    prevSlide();
+  }
+});
+
+// Add button event listeners
+document.getElementById("prevBtn").addEventListener("click", (e) => {
+  addRipple(e);
+  playClickLow();
+  prevSlide();
+});
+document.getElementById("nextBtn").addEventListener("click", (e) => {
+  addRipple(e);
+  playClickHigh();
+  nextSlide();
+});
+
+// Add reveal button listeners with animation + bubble/confetti burst + sound
+let revealCounter = 0;
+document.querySelectorAll(".reveal-btn").forEach((btn) => {
+  const variant = ["pop", "spark", "bell"][revealCounter++ % 3];
+  btn.addEventListener("click", () => {
+    const slide = btn.closest(".slide");
+    const content = slide.querySelector(".content");
+    if (content) {
+      content.classList.remove("hidden");
+      // next frame to allow transition
+      requestAnimationFrame(() => content.classList.add("show"));
+      btn.style.display = "none";
+      // bubble burst near button
+      const rect = btn.getBoundingClientRect();
+      spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      spawnConfetti(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2,
+        60
+      );
+      if (variant === "spark") playSpark();
+      else if (variant === "bell") playBell();
+      else playPop();
+    }
+  });
+  btn.addEventListener("pointerdown", addRipple);
+});
+
+// Basic touch swipe navigation
+let touchStartX = null;
+let touchStartY = null;
+const threshold = 40; // px
+document.addEventListener(
+  "touchstart",
+  (e) => {
+    if (!e.touches[0]) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  },
+  { passive: true }
+);
+
+document.addEventListener(
+  "touchend",
+  (e) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const dx = touchEndX - touchStartX;
+    const dy = touchEndY - touchStartY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+      if (dx < 0) nextSlide();
+      else prevSlide();
+    }
+    touchStartX = null;
+    touchStartY = null;
+  },
+  { passive: true }
+);
+
+// Bubble particle background
+const canvas = document.getElementById("bubbleCanvas");
+const ctx = canvas.getContext("2d");
+let bubbles = [];
+let confetti = [];
+let dpr = Math.max(1, window.devicePixelRatio || 1);
+let cw = 0,
+  ch = 0;
+let pointerX = null,
+  pointerY = null;
+let lastPointerSpawn = 0;
+let turboMode = false;
+let sparkles = [];
+
+function resizeCanvas() {
+  cw = window.innerWidth;
+  ch = window.innerHeight;
+  canvas.width = Math.floor(cw * dpr);
+  canvas.height = Math.floor(ch * dpr);
+  canvas.style.width = cw + "px";
+  canvas.style.height = ch + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // adjust bubble count based on area
+  let base = Math.max(60, Math.floor((cw * ch) / 18000));
+  if (turboMode) base *= 1.8;
+  const target = Math.min(200, base);
+  while (bubbles.length < target) bubbles.push(makeBubble());
+  if (bubbles.length > target) bubbles.length = target;
+}
+
+function rand(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function makeBubble(x, y, burst = false) {
+  const r = burst ? rand(10, 20) : rand(6, 18);
+  return {
+    x: x !== undefined ? x : rand(0, cw),
+    y: y !== undefined ? y : rand(ch * 0.6, ch + 50),
+    r,
+    vy: burst ? -rand(1.0, 2.2) : -rand(0.25, 1.15),
+    vx: burst ? rand(-1.0, 1.0) : rand(-0.4, 0.4),
+    alpha: burst ? rand(0.7, 1) : rand(0.35, 0.85),
+    hue: rand(180, 330),
+  };
+}
+
+function drawBubble(b) {
+  const grd = ctx.createRadialGradient(
+    b.x,
+    b.y,
+    b.r * 0.2,
+    b.x,
+    b.y,
+    b.r
+  );
+  grd.addColorStop(0, `hsla(${b.hue}, 80%, 70%, ${b.alpha})`);
+  grd.addColorStop(1, `hsla(${b.hue}, 80%, 60%, ${b.alpha * 0.35})`);
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function animate() {
+  ctx.clearRect(0, 0, cw, ch);
+  // bubbles
+  for (let i = 0; i < bubbles.length; i++) {
+    const b = bubbles[i];
+    if (pointerX !== null) {
+      const dx = pointerX - b.x;
+      const dy = pointerY - b.y;
+      const dist = Math.hypot(dx, dy) + 0.001;
+      const force = Math.min(turboMode ? 0.18 : 0.12, 18 / dist);
+      b.vx += (dx / dist) * force * 0.15;
+      b.vy += (dy / dist) * force * 0.08;
+    }
+    b.y += b.vy;
+    b.x += b.vx;
+    b.alpha *= 0.9995;
+    drawBubble(b);
+    if (b.y < -40 || b.x < -40 || b.x > cw + 40 || b.alpha < 0.08) {
+      bubbles[i] = makeBubble();
+    }
+  }
+  // confetti
+  for (let i = confetti.length - 1; i >= 0; i--) {
+    const c = confetti[i];
+    c.vy += 0.008; // gravity
+    c.x += c.vx;
+    c.y += c.vy;
+    c.rot += c.vr;
+    drawConfetti(c);
+    if (c.y > ch + 80) confetti.splice(i, 1);
+  }
+  // sparkles
+  for (let i = sparkles.length - 1; i >= 0; i--) {
+    const s = sparkles[i];
+    s.x += s.vx;
+    s.y += s.vy;
+    s.vy += 0.002;
+    s.alpha *= 0.96;
+    drawSparkle(s);
+    if (s.alpha < 0.05) sparkles.splice(i, 1);
+  }
+  requestAnimationFrame(animate);
+}
+
+function spawnBurst(x, y) {
+  const rect = { left: 0, top: 0 };
+  const gx = x - rect.left;
+  const gy = y - rect.top;
+  for (let i = 0; i < 18; i++) {
+    bubbles.push(
+      makeBubble(gx + rand(-20, 20), gy + rand(-10, 10), true)
+    );
+  }
+}
+
+function spawnConfetti(x, y, count = 40) {
+  for (let i = 0; i < count; i++) {
+    confetti.push(makeConfetti(x + rand(-16, 16), y + rand(-12, 12)));
+  }
+}
+
+function makeConfetti(x, y) {
+  const size = rand(6, 16);
+  return {
+    x,
+    y,
+    w: size,
+    h: size * rand(0.6, 1.2),
+    hue: rand(0, 360),
+    alpha: rand(0.7, 1),
+    vx: rand(-1.4, 1.4),
+    vy: rand(-2.2, -0.6),
+    rot: rand(0, Math.PI * 2),
+    vr: rand(-0.05, 0.05),
+  };
+}
+
+function drawConfetti(c) {
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(c.rot);
+  ctx.fillStyle = `hsla(${c.hue}, 85%, 60%, ${c.alpha})`;
+  ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+  ctx.restore();
+}
+
+function makeSparkle(x, y) {
+  return {
+    x,
+    y,
+    vx: rand(-0.8, 0.8),
+    vy: rand(-1.2, -0.2),
+    size: rand(2, 4),
+    alpha: rand(0.6, 1),
+    hue: rand(180, 330),
+  };
+}
+function drawSparkle(s) {
+  ctx.save();
+  ctx.globalAlpha = s.alpha;
+  ctx.fillStyle = `hsla(${s.hue}, 90%, 70%, ${s.alpha})`;
+  ctx.beginPath();
+  ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// pointer/touch interactivity: track and spawn micro bubbles
+const pointerHandler = (clientX, clientY) => {
+  pointerX = clientX;
+  pointerY = clientY;
+  const now = performance.now();
+  if (now - lastPointerSpawn > 40) {
+    bubbles.push(makeBubble(clientX, clientY, true));
+    lastPointerSpawn = now;
+  }
+  // subtle parallax on active slide
+  const active = document.querySelector(".slide.active");
+  if (active) {
+    const xPct = clientX / cw - 0.5;
+    const yPct = clientY / ch - 0.5;
+    active.style.transform = `rotateY(${xPct * 8}deg) rotateX(${
+      yPct * -6
+    }deg) translate(${xPct * 14}px, ${yPct * 12}px)`;
+  }
+  // sparkles trail
+  sparkles.push(makeSparkle(clientX, clientY));
+};
+
+document.addEventListener(
+  "pointermove",
+  (e) => pointerHandler(e.clientX, e.clientY),
+  { passive: true }
+);
+document.addEventListener(
+  "pointerdown",
+  (e) => {
+    pointerHandler(e.clientX, e.clientY);
+    spawnConfetti(e.clientX, e.clientY, 30);
+    const isButton = e.target.closest("button");
+    if (!isButton) playPop(1.05);
+    // Ensure audio context is active after first interaction
+    if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+  },
+  { passive: true }
+);
+
+// Palette cycle: change scheme on ANY button click
+const docEl = document.documentElement;
+const palettes = [
+  {
+    name: "Original",
+    bg1: "#0f1226",
+    bg2: "#23123a",
+    accent: "#ffd166",
+    accent2: "#ff80bf",
+    accent3: "#7bdff2",
+  },
+  {
+    name: "Pastel",
+    bg1: "#1a2038",
+    bg2: "#2a1f4f",
+    accent: "#ffd1dc",
+    accent2: "#c5e1ff",
+    accent3: "#baffc9",
+  },
+  {
+    name: "Neon",
+    bg1: "#000511",
+    bg2: "#210045",
+    accent: "#39ff14",
+    accent2: "#ff00e5",
+    accent3: "#00eaff",
+  },
+  {
+    name: "Lava",
+    bg1: "#120004",
+    bg2: "#3a000b",
+    accent: "#ff3d00",
+    accent2: "#ffcc00",
+    accent3: "#ff006e",
+  },
+  {
+    name: "Ocean",
+    bg1: "#022b3a",
+    bg2: "#1f7a8c",
+    accent: "#bfdbf7",
+    accent2: "#00a6fb",
+    accent3: "#0582ca",
+  },
+  {
+    name: "Forest",
+    bg1: "#0b2e13",
+    bg2: "#1f5f2f",
+    accent: "#a7f3d0",
+    accent2: "#34d399",
+    accent3: "#10b981",
+  },
+  {
+    name: "Candy",
+    bg1: "#2a0a2f",
+    bg2: "#5b105f",
+    accent: "#ff7bd0",
+    accent2: "#ffd166",
+    accent3: "#7bdff2",
+  },
+  {
+    name: "Royal",
+    bg1: "#0c1234",
+    bg2: "#2a2f8f",
+    accent: "#ffcf56",
+    accent2: "#f72585",
+    accent3: "#4cc9f0",
+  },
+  {
+    name: "Mono HC",
+    bg1: "#000000",
+    bg2: "#1a1a1a",
+    accent: "#ffffff",
+    accent2: "#cccccc",
+    accent3: "#888888",
+  },
+  {
+    name: "Aurora",
+    bg1: "#061222",
+    bg2: "#14324e",
+    accent: "#a0f0ff",
+    accent2: "#b0ff9a",
+    accent3: "#fda4af",
+  },
+];
+let paletteIndex = 0;
+function applyPalette(p) {
+  docEl.style.setProperty("--bg1", p.bg1);
+  docEl.style.setProperty("--bg2", p.bg2);
+  docEl.style.setProperty("--accent", p.accent);
+  docEl.style.setProperty("--accent-2", p.accent2);
+  docEl.style.setProperty("--accent-3", p.accent3);
+}
+applyPalette(palettes[paletteIndex]);
+function cyclePalette() {
+  paletteIndex = (paletteIndex + 1) % palettes.length;
+  applyPalette(palettes[paletteIndex]);
+  spawnConfetti(cw / 2, ch * 0.2, 100);
+  playPop(1.25);
+}
+// Global listener: ANY click cycles the palette
+document.addEventListener("click", () => cyclePalette(), true);
+
+// Simple pop sound via WebAudio
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+const audioCtx = AudioCtx ? new AudioCtx() : null;
+
+function playPop(pitch = 1) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const t = audioCtx.currentTime;
+  osc.type = "triangle";
+  osc2.type = "sine";
+  osc.frequency.setValueAtTime(220 * pitch, t);
+  osc2.frequency.setValueAtTime(440 * pitch, t);
+  gain.gain.setValueAtTime(0.001, t);
+  gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+  osc.connect(gain);
+  osc2.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc2.start();
+  osc.stop(t + 0.22);
+  osc2.stop(t + 0.22);
+}
+
+// Additional button-specific sounds
+function playClickHigh() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const o1 = audioCtx.createOscillator();
+  const o2 = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o1.type = "square";
+  o2.type = "triangle";
+  o1.frequency.setValueAtTime(720, t);
+  o2.frequency.setValueAtTime(1080, t);
+  g.gain.setValueAtTime(0.001, t);
+  g.gain.exponentialRampToValueAtTime(0.22, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+  o1.connect(g);
+  o2.connect(g);
+  g.connect(audioCtx.destination);
+  o1.start();
+  o2.start();
+  o1.stop(t + 0.18);
+  o2.stop(t + 0.18);
+}
+
+function playClickLow() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const o1 = audioCtx.createOscillator();
+  const o2 = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o1.type = "sawtooth";
+  o2.type = "sine";
+  o1.frequency.setValueAtTime(200, t);
+  o2.frequency.setValueAtTime(300, t);
+  g.gain.setValueAtTime(0.001, t);
+  g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+  o1.connect(g);
+  o2.connect(g);
+  g.connect(audioCtx.destination);
+  o1.start();
+  o2.start();
+  o1.stop(t + 0.22);
+  o2.stop(t + 0.22);
+}
+
+function playBell() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const o1 = audioCtx.createOscillator();
+  const o2 = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o1.type = "sine";
+  o2.type = "sine";
+  o1.frequency.setValueAtTime(880, t);
+  o2.frequency.setValueAtTime(1320, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+  o1.connect(g);
+  o2.connect(g);
+  g.connect(audioCtx.destination);
+  o1.start();
+  o2.start();
+  o1.stop(t + 0.6);
+  o2.stop(t + 0.6);
+}
+
+function playSpark() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const o1 = audioCtx.createOscillator();
+  const o2 = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o1.type = "triangle";
+  o2.type = "square";
+  o1.frequency.setValueAtTime(1200, t);
+  o2.frequency.setValueAtTime(1600, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.22, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+  o1.connect(g);
+  o2.connect(g);
+  g.connect(audioCtx.destination);
+  o1.start();
+  o2.start();
+  o1.stop(t + 0.16);
+  o2.stop(t + 0.16);
+}
+
+// Turbo mode removed per request
+
+// Button ripple util
+function addRipple(e) {
+  const target = e.currentTarget;
+  const rect = target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const rip = document.createElement("span");
+  rip.className = "ripple";
+  rip.style.left = x + "px";
+  rip.style.top = y + "px";
+  target.appendChild(rip);
+  rip.addEventListener("animationend", () => rip.remove());
+}
+
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+animate();
