@@ -7,6 +7,10 @@
   font-display: swap;
 }
 
+* {
+  font-family: "Ploni", "Segoe UI", sans-serif;
+}
+
 :root {
   --bg1: #0f1226;
   --bg2: #23123a;
@@ -20,17 +24,15 @@
 body {
   margin: 0;
   font-family: "Ploni", "Segoe UI", sans-serif;
-  background: radial-gradient(
-      color: #111; var(--bg2),
-      border: 2px solid rgba(255, 255, 255, 0.45) ;
-    ),
-    radial-gradient(1200px 800px at 80% 90%, var(--bg1), transparent),
-    linear-gradient(135deg, var(--bg1), var(--bg2));
+  background:
+    linear-gradient(180deg, var(--accent-2), var(--accent-3));
   color: var(--text);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  color: #111;
-  perspective: 900px;
+  perspective: 1200px; /* increased for more 3D depth */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Floating bubble particle canvas */
@@ -46,8 +48,7 @@ body {
   min-height: 100vh; /* fallback */
   min-height: 100dvh; /* mobile dynamic viewport */
   width: 100%;
-  padding: 72px;
-  padding-bottom: calc(240px + env(safe-area-inset-bottom));
+  padding: 0;
   box-sizing: border-box;
   text-align: center;
   animation: fadeIn 0.6s ease;
@@ -56,6 +57,13 @@ body {
   z-index: 1;
   will-change: transform;
   transform-style: preserve-3d;
+}
+
+.slide.active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 @keyframes sway {
@@ -148,13 +156,17 @@ body {
   }
 }
 .slide.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   animation: bubble-pop 700ms cubic-bezier(0.2, 1.1, 0.2, 1);
 }
 
 h1 {
   font-size: clamp(3rem, 10vw, 5rem);
-  margin: 8px 0;
+  margin: 72px 0 8px 0;
+  transform: translateZ(30px);
 }
 
 h2 {
@@ -188,11 +200,12 @@ ul {
 }
 
 .hint {
-  position: absolute;
-  top: 20px;
-  left: 20px;
+  position: static;
+  margin-top: 10px;
   font-size: 1em;
-  opacity: 0.6;
+  opacity: 0.7;
+  text-align: center;
+  transform: translateZ(10px);
 }
 
 @keyframes fadeIn {
@@ -257,13 +270,10 @@ ul {
 }
 
 .navigation {
-  position: fixed;
-  bottom: 96px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   gap: 18px;
-  z-index: 100;
+  justify-content: center;
+  margin-top: 20px;
 }
 
 .controls {
@@ -320,14 +330,15 @@ ul {
   border-radius: 38px;
   box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4);
   opacity: 0;
-  transform: scale(0.96);
+  transform: scale(0.96) translateZ(10px);
   transition: opacity 450ms cubic-bezier(0.2, 0.8, 0.2, 1.2),
     transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1.2);
 }
 
 .content.show {
   opacity: 1;
-  transform: scale(1);
+  transform: scale(1) translateZ(10px);
+  animation: content-reveal 600ms cubic-bezier(0.2, 0.8, 0.2, 1.1) both;
 }
 
 .reveal-btn {
@@ -346,6 +357,9 @@ ul {
   margin: 22px 0;
   transition: transform 0.15s ease, box-shadow 0.3s ease;
   box-shadow: 0 14px 32px rgba(255, 209, 102, 0.48);
+  transform: translateZ(20px);
+  position: relative;
+  overflow: hidden;
 }
 
 .reveal-btn:hover {
@@ -357,6 +371,30 @@ ul {
   transform: translateY(0);
 }
 
+/* Hold-to-reveal progress ring overlay */
+.hold-indicator {
+  position: absolute;
+  inset: -6px; /* ring slightly larger than button */
+  border-radius: 999px;
+  pointer-events: none;
+  background: conic-gradient(var(--accent) 0deg, rgba(255,255,255,0.12) 0deg);
+  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.15);
+}
+
+/* Stronger final reveal animation */
+@keyframes content-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateZ(10px) rotateY(-6deg);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateZ(10px) rotateY(0deg);
+    filter: blur(0);
+  }
+}
+
 /* Mobile adjustments */
 @media (max-width: 600px) {
   .slide {
@@ -364,9 +402,10 @@ ul {
   }
 
   .hint {
-    right: 16px;
-    left: auto;
-    font-size: 0.9rem;
+    position: static;
+    margin-top: 8px;
+    font-size: 0.95rem;
+    text-align: center;
   }
 
   .footer {

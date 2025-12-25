@@ -58,43 +58,126 @@ document.addEventListener("keydown", (e) => {
 });
 
 // Add button event listeners
-document.getElementById("prevBtn").addEventListener("click", (e) => {
-  addRipple(e);
-  playClickLow();
-  prevSlide();
+document.querySelectorAll(".prev-btn").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    addRipple(e);
+    playClickLow();
+    vibrate(8);
+    prevSlide();
+  });
 });
-document.getElementById("nextBtn").addEventListener("click", (e) => {
-  addRipple(e);
-  playClickHigh();
-  nextSlide();
+document.querySelectorAll(".next-btn").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    addRipple(e);
+    playClickHigh();
+    vibrate(8);
+    nextSlide();
+  });
 });
 
-// Add reveal button listeners with animation + bubble/confetti burst + sound
+// Press-and-hold reveal buttons (3s) with progress ring and reveal effects
 let revealCounter = 0;
+function vibrate(pattern) {
+  try {
+    if (navigator && typeof navigator.vibrate === "function") {
+      navigator.vibrate(pattern);
+    }
+  } catch (_) {}
+}
+function triggerRevealForButton(btn, variant) {
+  const slide = btn.closest(".slide");
+  const content = slide.querySelector(".content");
+  if (content) {
+    content.classList.remove("hidden");
+    // next frame to allow transition
+    requestAnimationFrame(() => content.classList.add("show"));
+    const rect = btn.getBoundingClientRect();
+    fireworks.push(makeFirework(rect.left + rect.width / 2, rect.top + rect.height / 2));
+    spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, 60);
+    if (variant === "spark") playSpark();
+    else if (variant === "bell") playBell();
+    else playPop();
+    btn.style.display = "none";
+  }
+}
+
 document.querySelectorAll(".reveal-btn").forEach((btn) => {
   const variant = ["pop", "spark", "bell"][revealCounter++ % 3];
-  btn.addEventListener("click", () => {
-    const slide = btn.closest(".slide");
-    const content = slide.querySelector(".content");
-    if (content) {
-      content.classList.remove("hidden");
-      // next frame to allow transition
-      requestAnimationFrame(() => content.classList.add("show"));
-      btn.style.display = "none";
-      // bubble burst near button
-      const rect = btn.getBoundingClientRect();
-      spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
-      spawnConfetti(
-        rect.left + rect.width / 2,
-        rect.top + rect.height / 2,
-        60
+  let holding = false;
+  let holdStart = 0;
+  let holdRAF = null;
+  let holdIndicator = null;
+  let milestone = 0; // for haptic progress pulses
+  const required = 3000; // 3 seconds
+
+  const cleanupHold = () => {
+    holding = false;
+    if (holdIndicator) {
+      holdIndicator.remove();
+      holdIndicator = null;
+    }
+    if (holdRAF) {
+      cancelAnimationFrame(holdRAF);
+      holdRAF = null;
+    }
+  };
+
+  const loop = () => {
+    if (!holding) return;
+    const p = Math.min(1, (performance.now() - holdStart) / required);
+    const deg = Math.floor(p * 360);
+    if (holdIndicator) {
+      holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
+    }
+    // Haptic feedback milestones at ~33% and ~66%
+    if (p >= 0.33 && milestone < 1) {
+      vibrate(12);
+      milestone = 1;
+    }
+    if (p >= 0.66 && milestone < 2) {
+      vibrate([8, 60, 8]);
+      milestone = 2;
+    }
+    if (p >= 1) {
+      cleanupHold();
+      vibrate([20, 50, 20]);
+      triggerRevealForButton(btn, variant);
+      return;
+    }
+    holdRAF = requestAnimationFrame(loop);
+  };
+
+  btn.addEventListener("pointerdown", (e) => {
+    addRipple(e);
+    // start hold tracking
+    holding = true;
+    holdStart = performance.now();
+    holdIndicator = document.createElement("span");
+    holdIndicator.className = "hold-indicator";
+    btn.appendChild(holdIndicator);
+    // initial haptic tap
+    vibrate(10);
+    loop();
+  });
+  const cancelers = ["pointerup", "pointerleave", "pointercancel"];
+  cancelers.forEach((evt) =>
+    btn.addEventListener(evt, () => {
+      cleanupHold();
+    })
+  );
+
+  btn.addEventListener("mouseenter", () => {
+    const rect = btn.getBoundingClientRect();
+    for (let i = 0; i < 20; i++) {
+      hearts.push(
+        makeHeart(
+          rect.left + rand(-50, rect.width + 50),
+          rect.top + rand(-50, rect.height + 50)
+        )
       );
-      if (variant === "spark") playSpark();
-      else if (variant === "bell") playBell();
-      else playPop();
     }
   });
-  btn.addEventListener("pointerdown", addRipple);
 });
 
 // Basic touch swipe navigation
@@ -142,6 +225,12 @@ let pointerX = null,
 let lastPointerSpawn = 0;
 let turboMode = false;
 let sparkles = [];
+let stars = [];
+let snowflakes = [];
+let hearts = [];
+let fireworks = [];
+let lastClickTime = 0;
+let snowTarget = 30;
 
 function resizeCanvas() {
   cw = window.innerWidth;
@@ -157,6 +246,14 @@ function resizeCanvas() {
   const target = Math.min(200, base);
   while (bubbles.length < target) bubbles.push(makeBubble());
   if (bubbles.length > target) bubbles.length = target;
+  // stars
+  let starTarget = Math.max(20, Math.floor((cw * ch) / 50000));
+  while (stars.length < starTarget) stars.push(makeStar());
+  if (stars.length > starTarget) stars.length = starTarget;
+  // snowflakes
+  snowTarget = Math.max(30, Math.floor((cw * ch) / 25000));
+  while (snowflakes.length < snowTarget) snowflakes.push(makeSnowflake());
+  if (snowflakes.length > snowTarget) snowflakes.length = snowTarget;
 }
 
 function rand(min, max) {
@@ -177,14 +274,7 @@ function makeBubble(x, y, burst = false) {
 }
 
 function drawBubble(b) {
-  const grd = ctx.createRadialGradient(
-    b.x,
-    b.y,
-    b.r * 0.2,
-    b.x,
-    b.y,
-    b.r
-  );
+  const grd = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r);
   grd.addColorStop(0, `hsla(${b.hue}, 80%, 70%, ${b.alpha})`);
   grd.addColorStop(1, `hsla(${b.hue}, 80%, 60%, ${b.alpha * 0.35})`);
   ctx.fillStyle = grd;
@@ -234,6 +324,48 @@ function animate() {
     drawSparkle(s);
     if (s.alpha < 0.05) sparkles.splice(i, 1);
   }
+  // stars
+  for (let s of stars) {
+    s.twinkle += s.twinkleSpeed;
+    drawStar(s);
+  }
+  // snowflakes
+  for (let i = snowflakes.length - 1; i >= 0; i--) {
+    const s = snowflakes[i];
+    s.x += s.vx;
+    s.y += s.vy;
+    s.rot += s.vr;
+    drawSnowflake(s);
+    if (s.y > ch + 50) snowflakes.splice(i, 1);
+  }
+  while (snowflakes.length < snowTarget) snowflakes.push(makeSnowflake());
+  // hearts
+  for (let i = hearts.length - 1; i >= 0; i--) {
+    const h = hearts[i];
+    h.x += h.vx;
+    h.y += h.vy;
+    h.vy += 0.01;
+    h.alpha *= 0.995;
+    drawHeart(h);
+    if (h.alpha < 0.05) hearts.splice(i, 1);
+  }
+  // fireworks
+  for (let i = fireworks.length - 1; i >= 0; i--) {
+    const f = fireworks[i];
+    for (let p of f) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+    }
+    drawFirework(f);
+    if (f.every((p) => p.life <= 0)) fireworks.splice(i, 1);
+  }
+  // random heart spawn
+  if (Math.random() < 0.01) {
+    for (let i = 0; i < rand(3, 6); i++) {
+      hearts.push(makeHeart(rand(0, cw), rand(0, ch)));
+    }
+  }
   requestAnimationFrame(animate);
 }
 
@@ -242,9 +374,7 @@ function spawnBurst(x, y) {
   const gx = x - rect.left;
   const gy = y - rect.top;
   for (let i = 0; i < 18; i++) {
-    bubbles.push(
-      makeBubble(gx + rand(-20, 20), gy + rand(-10, 10), true)
-    );
+    bubbles.push(makeBubble(gx + rand(-20, 20), gy + rand(-10, 10), true));
   }
 }
 
@@ -300,6 +430,148 @@ function drawSparkle(s) {
   ctx.restore();
 }
 
+function makeStar() {
+  return {
+    x: rand(0, cw),
+    y: rand(0, ch),
+    size: rand(1, 3),
+    alpha: rand(0.3, 0.8),
+    twinkle: rand(0, Math.PI * 2),
+    twinkleSpeed: rand(0.01, 0.05),
+  };
+}
+
+function drawStar(s) {
+  ctx.save();
+  ctx.globalAlpha = s.alpha * (0.5 + 0.5 * Math.sin(s.twinkle));
+  ctx.fillStyle = `hsla(50, 80%, 80%, ${ctx.globalAlpha})`;
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const angle = (i * Math.PI * 2) / 5;
+    const x = s.x + Math.cos(angle) * s.size;
+    const y = s.y + Math.sin(angle) * s.size;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function makeSnowflake() {
+  return {
+    x: rand(0, cw),
+    y: rand(-50, 0),
+    vx: rand(-0.5, 0.5),
+    vy: rand(0.5, 1.5),
+    size: rand(2, 5),
+    alpha: rand(0.6, 0.9),
+    rot: rand(0, Math.PI * 2),
+    vr: rand(-0.02, 0.02),
+  };
+}
+
+function drawSnowflake(s) {
+  ctx.save();
+  ctx.globalAlpha = s.alpha;
+  ctx.fillStyle = `hsla(0, 0%, 100%, ${s.alpha})`;
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.rot);
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const angle = (i * Math.PI) / 3;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(angle) * s.size, Math.sin(angle) * s.size);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(
+      Math.cos(angle + Math.PI / 6) * s.size * 0.5,
+      Math.sin(angle + Math.PI / 6) * s.size * 0.5
+    );
+  }
+  ctx.strokeStyle = `hsla(0, 0%, 100%, ${s.alpha})`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function makeHeart(x, y) {
+  return {
+    x,
+    y,
+    vx: rand(-1, 1),
+    vy: rand(-2, -0.5),
+    size: rand(8, 15),
+    alpha: rand(0.7, 1),
+    hue: rand(320, 360),
+  };
+}
+
+function drawHeart(h) {
+  ctx.save();
+  ctx.globalAlpha = h.alpha;
+  ctx.fillStyle = `hsla(${h.hue}, 90%, 70%, ${h.alpha})`;
+  ctx.beginPath();
+  const topCurveHeight = h.size * 0.3;
+  ctx.moveTo(h.x, h.y + topCurveHeight);
+  ctx.bezierCurveTo(
+    h.x,
+    h.y,
+    h.x - h.size / 2,
+    h.y,
+    h.x - h.size / 2,
+    h.y + topCurveHeight
+  );
+  ctx.bezierCurveTo(
+    h.x - h.size / 2,
+    h.y + (h.size + topCurveHeight) / 2,
+    h.x,
+    h.y + (h.size + topCurveHeight) / 2,
+    h.x,
+    h.y + h.size
+  );
+  ctx.bezierCurveTo(
+    h.x,
+    h.y + (h.size + topCurveHeight) / 2,
+    h.x + h.size / 2,
+    h.y + (h.size + topCurveHeight) / 2,
+    h.x + h.size / 2,
+    h.y + topCurveHeight
+  );
+  ctx.bezierCurveTo(h.x + h.size / 2, h.y, h.x, h.y, h.x, h.y + topCurveHeight);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function makeFirework(x, y) {
+  const particles = [];
+  for (let i = 0; i < 20; i++) {
+    particles.push({
+      x,
+      y,
+      vx: rand(-3, 3),
+      vy: rand(-3, 3),
+      life: rand(30, 60),
+      maxLife: rand(30, 60),
+      hue: rand(0, 360),
+    });
+  }
+  return particles;
+}
+
+function drawFirework(f) {
+  for (let p of f) {
+    const alpha = p.life / p.maxLife;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 // pointer/touch interactivity: track and spawn micro bubbles
 const pointerHandler = (clientX, clientY) => {
   pointerX = clientX;
@@ -332,8 +604,16 @@ document.addEventListener(
   (e) => {
     pointerHandler(e.clientX, e.clientY);
     spawnConfetti(e.clientX, e.clientY, 30);
+    const now = performance.now();
+    if (now - lastClickTime < 300) {
+      fireworks.push(makeFirework(e.clientX, e.clientY));
+      vibrate([10, 40, 10]);
+    }
+    lastClickTime = now;
     const isButton = e.target.closest("button");
     if (!isButton) playPop(1.05);
+    // subtle haptic on general taps
+    vibrate(5);
     // Ensure audio context is active after first interaction
     if (audioCtx && audioCtx.state === "suspended") {
       audioCtx.resume().catch(() => {});
@@ -574,6 +854,23 @@ function addRipple(e) {
   target.appendChild(rip);
   rip.addEventListener("animationend", () => rip.remove());
 }
+
+// Keyboard shortcuts
+document.addEventListener("keydown", (e) => {
+  if (e.key === "t" || e.key === "T") {
+    turboMode = !turboMode;
+    resizeCanvas(); // adjust particle counts
+    fireworks.push(makeFirework(cw / 2, ch / 2)); // fireworks on toggle
+  }
+  if (e.key === "f" || e.key === "F") {
+    fireworks.push(makeFirework(cw / 2, ch / 2));
+  }
+  if (e.key === "h" || e.key === "H") {
+    for (let i = 0; i < 10; i++) {
+      hearts.push(makeHeart(rand(0, cw), rand(0, ch)));
+    }
+  }
+});
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
