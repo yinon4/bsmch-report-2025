@@ -243,32 +243,33 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
   btn.addEventListener(
     "touchstart",
     (e) => {
-      // Prevent default to avoid triggering pointerdown again
-      e.preventDefault();
+      // Don't prevent default - let pointerdown handle it
       const rect = btn.getBoundingClientRect();
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 12; i++) {
         hearts.push(
           makeHeart(
-            rect.left + rand(-50, rect.width + 50),
-            rect.top + rand(-50, rect.height + 50)
+            rect.left + rand(-30, rect.width + 30),
+            rect.top + rand(-30, rect.height + 30)
           )
         );
       }
     },
-    { passive: false }
+    { passive: true }
   );
 });
 
 // Basic touch swipe navigation
 let touchStartX = null;
 let touchStartY = null;
-const threshold = 40; // px
+let touchStartTarget = null;
+const threshold = 60; // px - increased for better mobile UX
 document.addEventListener(
   "touchstart",
   (e) => {
     if (!e.touches[0]) return;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    touchStartTarget = e.target;
   },
   { passive: true }
 );
@@ -277,16 +278,28 @@ document.addEventListener(
   "touchend",
   (e) => {
     if (touchStartX === null) return;
+    // Don't swipe if started on a button
+    if (touchStartTarget && (touchStartTarget.classList.contains('reveal-btn') || 
+        touchStartTarget.classList.contains('nav-btn') ||
+        touchStartTarget.closest('.reveal-btn') ||
+        touchStartTarget.closest('.nav-btn'))) {
+      touchStartX = null;
+      touchStartY = null;
+      touchStartTarget = null;
+      return;
+    }
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const dx = touchEndX - touchStartX;
     const dy = touchEndY - touchStartY;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+    // Only swipe if horizontal movement is dominant and exceeds threshold
+    if (Math.abs(dx) > Math.abs(dy) * 1.5 && Math.abs(dx) > threshold) {
       if (dx < 0) nextSlide();
       else prevSlide();
     }
     touchStartX = null;
     touchStartY = null;
+    touchStartTarget = null;
   },
   { passive: true }
 );
