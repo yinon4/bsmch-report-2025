@@ -38,6 +38,8 @@ function showSlide(i) {
 
 function nextSlide() {
   if (index < slides.length - 1) {
+    // Next sound on navigating forward (SFX)
+    playNextSFX && playNextSFX();
     index++;
     showSlide(index);
   }
@@ -1029,6 +1031,10 @@ document.addEventListener(
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 
+// Global volume multiplier for synthesized (Web Audio) cues
+// Leave boop (HTMLAudio) unchanged as requested
+const SYNTH_VOLUME_MULT = 1.6; // ~+4 dB perceived
+
 function ensureAudio() {
   if (!audioCtx && AudioCtx) {
     audioCtx = new AudioCtx();
@@ -1049,7 +1055,8 @@ function quickEnv(g, dur = 0.15, peak = 0.08) {
   const t = now();
   g.gain.cancelScheduledValues(t);
   g.gain.setValueAtTime(0.0, t);
-  g.gain.linearRampToValueAtTime(peak, t + 0.01);
+  const boostedPeak = peak * SYNTH_VOLUME_MULT;
+  g.gain.linearRampToValueAtTime(boostedPeak, t + 0.01);
   g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * 0.001), t + dur);
 }
 
@@ -1140,7 +1147,7 @@ function playSuspense() {
   const g = makeGain(0);
   // Soft start
   g.gain.setValueAtTime(0.0001, now());
-  g.gain.exponentialRampToValueAtTime(0.02, now() + 0.1);
+  g.gain.exponentialRampToValueAtTime(0.02 * SYNTH_VOLUME_MULT, now() + 0.1);
   osc.frequency.setValueAtTime(220, now());
   osc.connect(g).connect(audioCtx.destination);
   osc.start();
@@ -1154,7 +1161,7 @@ function updateSuspense(p) {
   suspense.osc.frequency.cancelScheduledValues(t);
   suspense.osc.frequency.linearRampToValueAtTime(targetFreq, t + 0.05);
   // Slightly increase loudness as we progress
-  const targetGain = 0.02 + p * 0.03;
+  const targetGain = (0.02 + p * 0.03) * SYNTH_VOLUME_MULT;
   suspense.gain.gain.cancelScheduledValues(t);
   suspense.gain.gain.linearRampToValueAtTime(targetGain, t + 0.05);
 }
@@ -1275,17 +1282,22 @@ function createSfxPool(src, size = 4, volume = 1) {
 let sfxBoom = null;
 let sfxBack = null;
 let sfxHeart = null;
+let sfxNext = null;
 function playBoomSFX() {
   if (!sfxBoom) sfxBoom = createSfxPool("boom.mp3", 3, 1);
   sfxBoom.play();
 }
 function playBackSFX() {
-  if (!sfxBack) sfxBack = createSfxPool("back.mp3", 3, 0.9);
+  if (!sfxBack) sfxBack = createSfxPool("back.mp3", 3, 1);
   sfxBack.play();
 }
 function playHeartSFX() {
-  if (!sfxHeart) sfxHeart = createSfxPool("heart.mp3", 3, 0.9);
+  if (!sfxHeart) sfxHeart = createSfxPool("heart.mp3", 3, 1);
   sfxHeart.play();
+}
+function playNextSFX() {
+  if (!sfxNext) sfxNext = createSfxPool("next.mp3", 3, 1);
+  sfxNext.play();
 }
 
 function playSiren(cycles = 2) {
