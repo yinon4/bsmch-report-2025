@@ -66,7 +66,7 @@ document.querySelectorAll(".prev-btn").forEach((btn) => {
     prevSlide();
   });
 });
-document.querySelectorAll(".next-btn").forEach(btn => {
+document.querySelectorAll(".next-btn").forEach((btn) => {
   btn.addEventListener("click", (e) => {
     addRipple(e);
     playClickHigh();
@@ -77,6 +77,13 @@ document.querySelectorAll(".next-btn").forEach(btn => {
 
 // Press-and-hold reveal buttons (3s) with progress ring and reveal effects
 let revealCounter = 0;
+function vibrate(pattern) {
+  try {
+    if (navigator && typeof navigator.vibrate === "function") {
+      navigator.vibrate(pattern);
+    }
+  } catch (_) {}
+}
 function triggerRevealForButton(btn, variant) {
   const slide = btn.closest(".slide");
   const content = slide.querySelector(".content");
@@ -93,6 +100,7 @@ function triggerRevealForButton(btn, variant) {
     if (variant === "spark") playSpark();
     else if (variant === "bell") playBell();
     else playPop();
+    vibrate([20, 50, 20]);
     btn.style.display = "none";
   }
 }
@@ -125,7 +133,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     if (holdIndicator) {
       holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
     }
-  // Haptic feedback milestones at ~33% and ~66%
+    // Haptic feedback milestones at ~33% and ~66%
     if (p >= 0.33 && milestone < 1) {
       // vibrate(12);
       milestone = 1;
@@ -162,19 +170,23 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     })
   );
 
-  btn.addEventListener("touchstart", (e) => {
-    // Prevent default to avoid triggering pointerdown again
-    e.preventDefault();
-    const rect = btn.getBoundingClientRect();
-    for (let i = 0; i < 20; i++) {
-      hearts.push(
-        makeHeart(
-          rect.left + rand(-50, rect.width + 50),
-          rect.top + rand(-50, rect.height + 50)
-        )
-      );
-    }
-  }, { passive: false });
+  btn.addEventListener(
+    "touchstart",
+    (e) => {
+      // Prevent default to avoid triggering pointerdown again
+      e.preventDefault();
+      const rect = btn.getBoundingClientRect();
+      for (let i = 0; i < 20; i++) {
+        hearts.push(
+          makeHeart(
+            rect.left + rand(-50, rect.width + 50),
+            rect.top + rand(-50, rect.height + 50)
+          )
+        );
+      }
+    },
+    { passive: false }
+  );
 });
 
 // Basic touch swipe navigation
@@ -871,4 +883,19 @@ document.addEventListener("keydown", (e) => {
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+
+// Device orientation for 3D tilt on mobile
+if (window.DeviceOrientationEvent) {
+  window.addEventListener('deviceorientation', function(event) {
+    const beta = event.beta; // front-to-back tilt (-180 to 180)
+    const gamma = event.gamma; // left-to-right tilt (-90 to 90)
+    if (beta !== null && gamma !== null) {
+      // Center the rotation: beta 0 is flat, so subtract 90 to make flat = 0
+      const rotateX = (beta - 90) * 0.5; // dampen the effect
+      const rotateY = gamma * 0.5;
+      document.body.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    }
+  });
+}
+
 animate();
