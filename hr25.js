@@ -262,6 +262,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
 let touchStartX = null;
 let touchStartY = null;
 let touchStartTarget = null;
+let lastTouchParticleTime = 0;
 const threshold = 60; // px - increased for better mobile UX
 document.addEventListener(
   "touchstart",
@@ -270,6 +271,46 @@ document.addEventListener(
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchStartTarget = e.target;
+  },
+  { passive: true }
+);
+
+// Create particles while dragging on mobile
+document.addEventListener(
+  "touchmove",
+  (e) => {
+    if (!e.touches[0]) return;
+    const now = performance.now();
+    // Throttle particle creation to every 50ms
+    if (now - lastTouchParticleTime < 50) return;
+    lastTouchParticleTime = now;
+    
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+    
+    // Don't create particles if touching buttons
+    if (touchStartTarget && (touchStartTarget.classList.contains('reveal-btn') || 
+        touchStartTarget.classList.contains('nav-btn') ||
+        touchStartTarget.closest('.reveal-btn') ||
+        touchStartTarget.closest('.nav-btn'))) {
+      return;
+    }
+    
+    // Spawn bubbles along the drag path
+    for (let i = 0; i < 2; i++) {
+      bubbles.push(makeBubble(x + rand(-15, 15), y + rand(-15, 15), true));
+    }
+    
+    // Spawn sparkles occasionally
+    if (Math.random() < 0.4) {
+      sparkles.push(makeSparkle(x + rand(-20, 20), y + rand(-20, 20)));
+    }
+    
+    // Spawn hearts occasionally
+    if (Math.random() < 0.2) {
+      hearts.push(makeHeart(x + rand(-25, 25), y + rand(-25, 25)));
+    }
   },
   { passive: true }
 );
