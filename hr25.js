@@ -70,11 +70,9 @@ document.querySelectorAll(".prev-btn").forEach((btn) => {
     const centerY = rect.top + rect.height / 2;
     // Spawn bubbles around the button
     for (let i = 0; i < 8; i++) {
-      bubbles.push(makeBubble(
-        centerX + rand(-30, 30),
-        centerY + rand(-30, 30),
-        true
-      ));
+      bubbles.push(
+        makeBubble(centerX + rand(-30, 30), centerY + rand(-30, 30), true)
+      );
     }
     // Small confetti burst
     spawnConfetti(centerX, centerY, 15);
@@ -94,11 +92,9 @@ document.querySelectorAll(".next-btn").forEach((btn) => {
     const centerY = rect.top + rect.height / 2;
     // Spawn bubbles around the button
     for (let i = 0; i < 8; i++) {
-      bubbles.push(makeBubble(
-        centerX + rand(-30, 30),
-        centerY + rand(-30, 30),
-        true
-      ));
+      bubbles.push(
+        makeBubble(centerX + rand(-30, 30), centerY + rand(-30, 30), true)
+      );
     }
     // Small confetti burst
     spawnConfetti(centerX, centerY, 15);
@@ -156,6 +152,8 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       cancelAnimationFrame(holdRAF);
       holdRAF = null;
     }
+    // Reset button transform
+    btn.style.transform = '';
   };
 
   const loop = () => {
@@ -165,19 +163,55 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     if (holdIndicator) {
       holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
     }
+    // Aggressive shake that intensifies with progress
+    const shakeIntensity = p * 8; // 0 to 8 pixels
+    const shakeSpeed = 10 + p * 20; // faster as progress increases
+    const shakeX = Math.sin(performance.now() / (50 - shakeSpeed)) * shakeIntensity;
+    const shakeY = Math.cos(performance.now() / (60 - shakeSpeed)) * shakeIntensity * 0.5;
+    const shakeRot = Math.sin(performance.now() / (40 - shakeSpeed)) * p * 3; // up to 3 degrees
+    btn.style.transform = `translateZ(20px) translate(${shakeX}px, ${shakeY}px) rotate(${shakeRot}deg) scale(${1 - p * 0.05})`;
+    
     // Haptic feedback milestones at ~33% and ~66%
     if (p >= 0.33 && milestone < 1) {
-      // vibrate(12);
+      vibrate(12);
       milestone = 1;
     }
     if (p >= 0.66 && milestone < 2) {
-      // vibrate([8, 60, 8]);
+      vibrate([8, 60, 8]);
       milestone = 2;
     }
     if (p >= 1) {
       cleanupHold();
-      // vibrate([20, 50, 20]);
+      vibrate([50, 100, 50, 100, 50]);
       triggerRevealForButton(btn, variant);
+      // MASSIVE EXPLOSION EFFECT
+      const rect = btn.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      // HUGE confetti burst - multiple waves
+      spawnConfetti(centerX, centerY, 250);
+      setTimeout(() => spawnConfetti(centerX, centerY, 150), 100);
+      setTimeout(() => spawnConfetti(centerX, centerY, 100), 200);
+      // Massive bubble explosion
+      for (let i = 0; i < 80; i++) {
+        bubbles.push(
+          makeBubble(centerX + rand(-150, 150), centerY + rand(-150, 150), true)
+        );
+      }
+      // Heart burst - huge
+      for (let i = 0; i < 60; i++) {
+        hearts.push(
+          makeHeart(centerX + rand(-180, 180), centerY + rand(-180, 180))
+        );
+      }
+      // Sparkle explosion - massive
+      for (let i = 0; i < 120; i++) {
+        sparkles.push(
+          makeSparkle(centerX + rand(-200, 200), centerY + rand(-200, 200))
+        );
+      }
+      // COLOR BURST FLASH
+      triggerColorBurst();
       return;
     }
     holdRAF = requestAnimationFrame(loop);
@@ -192,7 +226,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     holdIndicator.className = "hold-indicator";
     btn.appendChild(holdIndicator);
     // initial haptic tap
-    // vibrate(10);
+    vibrate(10);
     loop();
   });
   const cancelers = ["pointerup", "pointerleave", "pointercancel"];
@@ -897,11 +931,35 @@ function addRipple(e) {
 }
 
 function triggerDarken() {
-  const darken = document.querySelector('.click-darken');
-  darken.classList.add('active');
+  const darken = document.querySelector(".click-darken");
+  darken.classList.add("active");
   setTimeout(() => {
-    darken.classList.remove('active');
+    darken.classList.remove("active");
   }, 300);
+}
+
+function triggerColorBurst() {
+  // Create color burst overlay
+  const burst = document.createElement("div");
+  burst.className = "color-burst";
+  document.body.appendChild(burst);
+  
+  // Trigger animation
+  requestAnimationFrame(() => {
+    burst.classList.add("active");
+  });
+  
+  // Remove after animation
+  setTimeout(() => {
+    burst.remove();
+  }, 1000);
+  
+  // Add multiple fireworks
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      fireworks.push(makeFirework(rand(cw * 0.2, cw * 0.8), rand(ch * 0.2, ch * 0.6)));
+    }, i * 80);
+  }
 }
 
 // Keyboard shortcuts
