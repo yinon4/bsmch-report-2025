@@ -633,13 +633,13 @@ function drawSnowflake(s) {
   ctx.restore();
 }
 
-function makeHeart(x, y) {
+function makeHeart(x, y, size) {
   return {
     x,
     y,
     vx: rand(-1, 1),
     vy: rand(-2, -0.5),
-    size: rand(8, 15),
+    size: size || rand(8, 15),
     alpha: rand(0.7, 1),
     hue: rand(320, 360),
   };
@@ -757,17 +757,65 @@ document.addEventListener(
     const now = performance.now();
     if (now - lastClickTime < 300) {
       fireworks.push(makeFirework(e.clientX, e.clientY));
-      // vibrate([10, 40, 10]);
     }
     lastClickTime = now;
     const isButton = e.target.closest("button");
     if (!isButton) playPop(1.05);
-    // subtle haptic on general taps
-    // vibrate(5);
     // Ensure audio context is active after first interaction
     if (audioCtx && audioCtx.state === "suspended") {
       audioCtx.resume().catch(() => {});
     }
+  },
+  { passive: true }
+);
+
+// Double-click for massive heart burst
+document.addEventListener(
+  "dblclick",
+  (e) => {
+    // BIG HEART BURST on double click - varied sizes, exploding outward!
+    for (let i = 0; i < 80; i++) {
+      // Most hearts are small, some are massive, few are HUGE
+      let size;
+      let speedMultiplier;
+      const random = Math.random();
+      if (random < 0.7) {
+        // 70% small hearts - fastest
+        size = rand(8, 18);
+        speedMultiplier = rand(1.5, 2.2);
+      } else if (random < 0.85) {
+        // 15% medium hearts - medium speed
+        size = rand(20, 35);
+        speedMultiplier = rand(0.9, 1.3);
+      } else if (random < 0.95) {
+        // 10% large hearts - slower
+        size = rand(40, 70);
+        speedMultiplier = rand(0.4, 0.7);
+      } else {
+        // 5% HUGE hearts - super slow
+        size = rand(75, 120);
+        speedMultiplier = rand(0.15, 0.35);
+      }
+
+      // Calculate position offset for explosion
+      const angle = rand(0, Math.PI * 2);
+      const distance = rand(50, 250);
+      const offsetX = Math.cos(angle) * distance;
+      const offsetY = Math.sin(angle) * distance;
+
+      // Create heart with velocity pointing outward, scaled by size
+      const heart = makeHeart(e.clientX, e.clientY, size);
+      // Override velocity to explode outward - smaller = faster, bigger = slower
+      const baseSpeed = rand(3, 8);
+      heart.vx = (offsetX / distance) * baseSpeed * speedMultiplier;
+      heart.vy = (offsetY / distance) * baseSpeed * speedMultiplier;
+      // Varied colors: red, pink, purple (hue 300-360)
+      heart.hue = rand(300, 360);
+      hearts.push(heart);
+    }
+    spawnConfetti(e.clientX, e.clientY, 100);
+    vibrate([20, 100, 20]);
+    playBell();
   },
   { passive: true }
 );
@@ -872,7 +920,13 @@ function cyclePalette() {
   playPop(1.25);
 }
 // Global listener: ANY click cycles the palette
-document.addEventListener("click", () => cyclePalette(), true);
+document.addEventListener(
+  "click",
+  () => {
+    cyclePalette();
+  },
+  true
+);
 
 // Simple pop sound via WebAudio
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
