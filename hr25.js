@@ -131,9 +131,7 @@ function triggerRevealForButton(btn, variant) {
     );
     spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
     spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, 20);
-    if (variant === "spark") playSpark();
-    else if (variant === "bell") playBell();
-    else playPop();
+    // Removed synthetic audio cues (spark/bell/pop). Keep only MP3-based boom.
     vibrate([20, 50, 20]);
     btn.style.display = "none";
   }
@@ -198,8 +196,6 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       cancelAnimationFrame(holdRAF);
       holdRAF = null;
     }
-    // Stop loading suspense tone
-    stopSuspense();
     // If user canceled early, stop the boom; on completion let it finish
     if (!completed) {
       stopHoldBoom(true);
@@ -215,8 +211,6 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     if (holdIndicator) {
       holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
     }
-    // Update loading tone with progress
-    updateSuspense(p);
     // Aggressive shake that intensifies with progress
     const shakeIntensity = p * 20; // 0 to 20 pixels - VIOLENT
     const shakeSpeed = 10 + p * 35; // faster as progress increases
@@ -243,9 +237,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       cleanupHold(true);
       vibrate([50, 100, 50, 100, 50]);
       triggerRevealForButton(btn, variant);
-      // Finish loading tone and play success chime
-      stopSuspense();
-      playSuccess();
+      // Removed synthetic success chime; keep visual effects only
       // MASSIVE EXPLOSION EFFECT
       const rect = btn.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
@@ -297,8 +289,6 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     btn.appendChild(holdIndicator);
     // initial haptic tap
     vibrate(10);
-    // Start a gentle suspense (loading) tone
-    playSuspense();
     loop();
   });
   const cancelers = ["pointerup", "pointerleave", "pointercancel"];
@@ -1003,6 +993,54 @@ const palettes = [
     accent2: "#b0ff9a",
     accent3: "#fda4af",
   },
+  {
+    name: "Sunset",
+    bg1: "#1b1523",
+    bg2: "#3a1c71",
+    accent: "#ff9f1c",
+    accent2: "#ff6f61",
+    accent3: "#ff4154",
+  },
+  {
+    name: "Mint",
+    bg1: "#0e1f1a",
+    bg2: "#1b3a2c",
+    accent: "#a7ff83",
+    accent2: "#17c3b2",
+    accent3: "#7bdff2",
+  },
+  {
+    name: "Midnight",
+    bg1: "#0a0f1e",
+    bg2: "#152238",
+    accent: "#9ec1ff",
+    accent2: "#6a7bff",
+    accent3: "#00c2ff",
+  },
+  {
+    name: "Desert",
+    bg1: "#2c1d0b",
+    bg2: "#5a3a1e",
+    accent: "#ffd166",
+    accent2: "#f4a261",
+    accent3: "#e76f51",
+  },
+  {
+    name: "Blossom",
+    bg1: "#2b102a",
+    bg2: "#4a174a",
+    accent: "#ffb3c1",
+    accent2: "#ff80bf",
+    accent3: "#cdb4db",
+  },
+  {
+    name: "Ice",
+    bg1: "#0b1d2e",
+    bg2: "#16324f",
+    accent: "#d6f5ff",
+    accent2: "#80eaff",
+    accent3: "#b3f0ff",
+  },
 ];
 let paletteIndex = 0;
 function applyPalette(p) {
@@ -1661,7 +1699,7 @@ if (window.DeviceOrientationEvent) {
   // Smoothing function for natural movement
   function smoothOrientation() {
     // Interpolate current values toward target (smoothing)
-    const smoothing = 0.1;
+    const smoothing = 0.2;
     currentRotateX += (targetRotateX - currentRotateX) * smoothing;
     currentRotateY += (targetRotateY - currentRotateY) * smoothing;
 
