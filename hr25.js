@@ -67,7 +67,7 @@ document.addEventListener("keydown", (e) => {
 document.querySelectorAll(".prev-btn").forEach((btn) => {
   btn.addEventListener("click", (e) => {
     addRipple(e);
-    playClickLow();
+    playBoop();
     // vibrate(8);
     prevSlide();
     // Add bubbly click effects
@@ -89,7 +89,7 @@ document.querySelectorAll(".prev-btn").forEach((btn) => {
 document.querySelectorAll(".next-btn").forEach((btn) => {
   btn.addEventListener("click", (e) => {
     addRipple(e);
-    playClickHigh();
+    playBoop();
     // vibrate(8);
     nextSlide();
     // Add bubbly click effects
@@ -855,8 +855,9 @@ document.addEventListener(
     lastClickTime = now;
     const isButton = e.target.closest("button");
     const isReveal = e.target.closest(".reveal-btn");
-    // Play boop on mouse presses only, excluding the big reveal button
-    if (e.pointerType === "mouse" && !isReveal) {
+    const isNav = e.target.closest(".nav-btn");
+    // Play boop on presses, excluding the big reveal button and nav buttons (which have their own sounds)
+    if (!isReveal && !isNav) {
       playBoop();
     }
     if (!isButton) playPop(1.05);
