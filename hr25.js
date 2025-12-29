@@ -160,7 +160,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
         } catch (_) {}
         holdBoomAudio = null;
       }
-      const a = new Audio("boom.mp3");
+      const a = new Audio("audio/boom.mp3");
       a.preload = "auto";
       a.volume = 1;
       a.currentTime = 0;
@@ -1237,7 +1237,7 @@ function playBack() {
 }
 
 // Button boop sound using HTMLAudioElement
-const boopSrc = "boop.mp3";
+const boopSrc = "audio/boop.mp3";
 let boopPool = [];
 let boopIndex = 0;
 function initBoop() {
@@ -1284,19 +1284,19 @@ let sfxBack = null;
 let sfxHeart = null;
 let sfxNext = null;
 function playBoomSFX() {
-  if (!sfxBoom) sfxBoom = createSfxPool("boom.mp3", 3, 1);
+  if (!sfxBoom) sfxBoom = createSfxPool("audio/boom.mp3", 3, 1);
   sfxBoom.play();
 }
 function playBackSFX() {
-  if (!sfxBack) sfxBack = createSfxPool("back.mp3", 3, 1);
+  if (!sfxBack) sfxBack = createSfxPool("audio/back.mp3", 3, 1);
   sfxBack.play();
 }
 function playHeartSFX() {
-  if (!sfxHeart) sfxHeart = createSfxPool("heart.mp3", 3, 1);
+  if (!sfxHeart) sfxHeart = createSfxPool("audio/heart.mp3", 3, 1);
   sfxHeart.play();
 }
 function playNextSFX() {
-  if (!sfxNext) sfxNext = createSfxPool("next.mp3", 3, 1);
+  if (!sfxNext) sfxNext = createSfxPool("audio/next.mp3", 3, 1);
   sfxNext.play();
 }
 
