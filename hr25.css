@@ -15,6 +15,33 @@
   -ms-user-select: none;
 }
 
+/* Ensure buttons are never text-selectable or show tap highlights */
+button,
+.nav-btn,
+.reveal-btn,
+input[type="button"],
+input[type="submit"],
+[role="button"] {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none; /* Disable iOS text selection/Callout */
+  -webkit-tap-highlight-color: transparent; /* Remove mobile tap highlight */
+}
+
+/* On touch devices, don’t show focus outline on buttons */
+@media (hover: none) and (pointer: coarse) {
+  button:focus,
+  .nav-btn:focus,
+  .reveal-btn:focus,
+  input[type="button"]:focus,
+  input[type="submit"]:focus,
+  [role="button"]:focus {
+    outline: none;
+  }
+}
+
 :root {
   --bg1: #0f1226;
   --bg2: #23123a;
