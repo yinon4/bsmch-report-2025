@@ -1,6 +1,7 @@
 const slides = document.querySelectorAll(".slide");
 let index = 0;
 let prevIndex = 0;
+let onEndScreen = false;
 
 function showSlide(i) {
   const direction = i > prevIndex ? "right" : "left";
@@ -39,8 +40,8 @@ function showSlide(i) {
 
   // Stop endless finale effects when leaving the end screens
   const endA = slides[slides.length - 1];
-  const endB = slides[slides.length - 2];
-  if (slides[i] !== endA && slides[i] !== endB) {
+  onEndScreen = slides[i] === endA;
+  if (!onEndScreen) {
     stopHeartRain();
   }
 }
@@ -55,15 +56,10 @@ function nextSlide() {
 }
 
 function prevSlide() {
-  // Allow wrap-around from first slide to last
   if (index > 0) {
     // Back sound on navigating backwards (SFX)
     playBackSFX();
     index--;
-    showSlide(index);
-  } else {
-    playBackSFX();
-    index = slides.length - 1;
     showSlide(index);
   }
 }
@@ -334,8 +330,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       const slideEl = btn.closest(".slide");
       if (slideEl && slides) {
         const endA = slides[slides.length - 1];
-        const endB = slides[slides.length - 2];
-        if (slideEl === endA || slideEl === endB) {
+        if (slideEl === endA) {
           startHeartRain(Infinity);
         }
       }
@@ -437,8 +432,10 @@ document.addEventListener(
     }
 
     // Spawn bubbles along the drag path
-    for (let i = 0; i < 3; i++) {
-      bubbles.push(makeBubble(x + rand(-15, 15), y + rand(-15, 15), true));
+    if (!onEndScreen) {
+      for (let i = 0; i < 3; i++) {
+        bubbles.push(makeBubble(x + rand(-15, 15), y + rand(-15, 15), true));
+      }
     }
 
     // Spawn sparkles occasionally
@@ -567,22 +564,24 @@ function drawBubble(b) {
 function animate() {
   ctx.clearRect(0, 0, cw, ch);
   // bubbles
-  for (let i = 0; i < bubbles.length; i++) {
-    const b = bubbles[i];
-    if (pointerX !== null) {
-      const dx = pointerX - b.x;
-      const dy = pointerY - b.y;
-      const dist = Math.hypot(dx, dy) + 0.001;
-      const force = Math.min(turboMode ? 0.18 : 0.12, 18 / dist);
-      b.vx += (dx / dist) * force * 0.15;
-      b.vy += (dy / dist) * force * 0.08;
-    }
-    b.y += b.vy;
-    b.x += b.vx;
-    b.alpha *= 0.9995;
-    drawBubble(b);
-    if (b.y < -40 || b.x < -40 || b.x > cw + 40 || b.alpha < 0.08) {
-      bubbles[i] = makeBubble();
+  if (!onEndScreen) {
+    for (let i = 0; i < bubbles.length; i++) {
+      const b = bubbles[i];
+      if (pointerX !== null) {
+        const dx = pointerX - b.x;
+        const dy = pointerY - b.y;
+        const dist = Math.hypot(dx, dy) + 0.001;
+        const force = Math.min(turboMode ? 0.18 : 0.12, 18 / dist);
+        b.vx += (dx / dist) * force * 0.15;
+        b.vy += (dy / dist) * force * 0.08;
+      }
+      b.y += b.vy;
+      b.x += b.vx;
+      b.alpha *= 0.9995;
+      drawBubble(b);
+      if (b.y < -40 || b.x < -40 || b.x > cw + 40 || b.alpha < 0.08) {
+        bubbles[i] = makeBubble();
+      }
     }
   }
   // confetti
@@ -626,9 +625,9 @@ function animate() {
     h.x += h.vx;
     h.y += h.vy;
     h.vy += 0.01;
-    h.alpha *= 0.995;
     drawHeart(h);
-    if (h.alpha < 0.05) hearts.splice(i, 1);
+    // Don't fade out hearts; only remove once they leave the screen
+    if (h.y > ch + 80 || h.x < -120 || h.x > cw + 120) hearts.splice(i, 1);
   }
   // random heart spawn
   if (Math.random() < 0.005) {
@@ -831,7 +830,7 @@ function startHeartRain(duration = 3000) {
       stopHeartRain();
       return;
     }
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       const x = rand(0, cw);
       const size = rand(10, 26);
       hearts.push({
@@ -864,7 +863,7 @@ const pointerHandler = (clientX, clientY) => {
   pointerX = clientX;
   pointerY = clientY;
   const now = performance.now();
-  if (now - lastPointerSpawn > 40) {
+  if (!onEndScreen && now - lastPointerSpawn > 40) {
     bubbles.push(makeBubble(clientX, clientY, true));
     lastPointerSpawn = now;
   }
