@@ -159,11 +159,8 @@ function triggerRevealForButton(btn, variant) {
     };
     content.addEventListener("animationend", onAnimEnd);
     const rect = btn.getBoundingClientRect();
-    fireworks.push(
-      makeFirework(rect.left + rect.width / 2, rect.top + rect.height / 2)
-    );
     spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, 20);
+    spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, 40);
     // Removed synthetic audio cues (spark/bell/pop). Keep only MP3-based boom.
     vibrate([20, 50, 20]);
     btn.style.display = "none";
@@ -294,10 +291,10 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       const rect = btn.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
-      // HUGE confetti burst - multiple waves
-      spawnConfetti(centerX, centerY, 60);
-      setTimeout(() => spawnConfetti(centerX, centerY, 30), 100);
-      setTimeout(() => spawnConfetti(centerX, centerY, 20), 200);
+      // HUGE confetti burst - multiple waves (increased)
+      spawnConfetti(centerX, centerY, 90);
+      setTimeout(() => spawnConfetti(centerX, centerY, 50), 100);
+      setTimeout(() => spawnConfetti(centerX, centerY, 40), 200);
       // Massive bubble explosion
       for (let i = 0; i < 100; i++) {
         bubbles.push(
@@ -476,6 +473,9 @@ const canvas = document.getElementById("bubbleCanvas");
 const ctx = canvas.getContext("2d");
 let bubbles = [];
 let confetti = [];
+const isMobile =
+  /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  window.innerWidth <= 640;
 let dpr = Math.max(1, window.devicePixelRatio || 1);
 let cw = 0,
   ch = 0;
@@ -487,9 +487,12 @@ let sparkles = [];
 let stars = [];
 let snowflakes = [];
 let hearts = [];
-let fireworks = [];
+// Fireworks removed for performance
 let lastClickTime = 0;
 let snowTarget = 30;
+
+// Adaptive quality + FPS tracking
+// Performance safeguards removed: no adaptive quality, caps, or frame skipping
 
 function resizeCanvas() {
   cw = window.innerWidth;
@@ -502,7 +505,7 @@ function resizeCanvas() {
   // adjust bubble count based on area
   let base = Math.max(60, Math.floor((cw * ch) / 18000));
   if (turboMode) base *= 1.8;
-  const target = Math.min(200, base);
+  const target = Math.min(200, Math.floor(base));
   while (bubbles.length < target) bubbles.push(makeBubble());
   if (bubbles.length > target) bubbles.length = target;
   // stars
@@ -607,17 +610,6 @@ function animate() {
     h.alpha *= 0.995;
     drawHeart(h);
     if (h.alpha < 0.05) hearts.splice(i, 1);
-  }
-  // fireworks
-  for (let i = fireworks.length - 1; i >= 0; i--) {
-    const f = fireworks[i];
-    for (let p of f) {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.life--;
-    }
-    drawFirework(f);
-    if (f.every((p) => p.life <= 0)) fireworks.splice(i, 1);
   }
   // random heart spawn
   if (Math.random() < 0.005) {
@@ -826,34 +818,7 @@ function startHeartRain(duration = 3000) {
   spawn();
 }
 
-function makeFirework(x, y) {
-  const particles = [];
-  for (let i = 0; i < 20; i++) {
-    particles.push({
-      x,
-      y,
-      vx: rand(-3, 3),
-      vy: rand(-3, 3),
-      life: rand(30, 60),
-      maxLife: rand(30, 60),
-      hue: rand(0, 360),
-    });
-  }
-  return particles;
-}
-
-function drawFirework(f) {
-  for (let p of f) {
-    const alpha = p.life / p.maxLife;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${alpha})`;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-}
+// makeFirework/drawFirework removed
 
 // pointer/touch interactivity: track and spawn micro bubbles
 const pointerHandler = (clientX, clientY) => {
@@ -871,7 +836,6 @@ const pointerHandler = (clientX, clientY) => {
     const yPct = (clientY / ch - 0.5) * 2;
 
     // Use smaller values on mobile for subtler effect
-    const isMobile = window.innerWidth <= 600;
     const xMultiplier = isMobile ? 4 : 8;
     const yMultiplier = isMobile ? 3 : 6;
     const xOffset = isMobile ? 6 : 14;
@@ -899,9 +863,6 @@ document.addEventListener(
     pointerHandler(e.clientX, e.clientY);
     spawnConfetti(e.clientX, e.clientY, 10);
     const now = performance.now();
-    if (now - lastClickTime < 300) {
-      fireworks.push(makeFirework(e.clientX, e.clientY));
-    }
     lastClickTime = now;
     const isButton = e.target.closest("button");
     const isReveal = e.target.closest(".reveal-btn");
@@ -1732,14 +1693,7 @@ function triggerColorBurst() {
     burst.remove();
   }, 1000);
 
-  // Add multiple fireworks
-  for (let i = 0; i < 8; i++) {
-    setTimeout(() => {
-      fireworks.push(
-        makeFirework(rand(cw * 0.2, cw * 0.8), rand(ch * 0.2, ch * 0.6))
-      );
-    }, i * 80);
-  }
+  // Fireworks burst removed
 }
 
 // Keyboard shortcuts
@@ -1747,11 +1701,8 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "t" || e.key === "T") {
     turboMode = !turboMode;
     resizeCanvas(); // adjust particle counts
-    fireworks.push(makeFirework(cw / 2, ch / 2)); // fireworks on toggle
   }
-  if (e.key === "f" || e.key === "F") {
-    fireworks.push(makeFirework(cw / 2, ch / 2));
-  }
+  // 'f' shortcut fireworks removed
   if (e.key === "h" || e.key === "H") {
     for (let i = 0; i < 10; i++) {
       hearts.push(makeHeart(rand(0, cw), rand(0, ch)));
@@ -1796,8 +1747,8 @@ if (window.DeviceOrientationEvent) {
       const clampedBeta = Math.max(-60, Math.min(60, beta));
       const clampedGamma = Math.max(-45, Math.min(45, gamma));
 
-      targetRotateX = clampedBeta * 0.15; // reduced from 0.5
-      targetRotateY = clampedGamma * 0.2; // reduced from 0.5
+      targetRotateX = clampedBeta * 0.15;
+      targetRotateY = clampedGamma * 0.2;
 
       // Start animation loop if not already running
       if (!orientationRAF) {
