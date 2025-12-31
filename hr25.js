@@ -519,17 +519,19 @@ function resizeCanvas() {
   canvas.style.height = ch + "px";
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // adjust bubble count based on area
-  let base = Math.max(60, Math.floor((cw * ch) / 18000));
-  if (turboMode) base *= 1.8;
-  const target = Math.min(200, Math.floor(base));
+  let base = Math.max(26, Math.floor((cw * ch) / 42000));
+  if (turboMode) base *= 1.5;
+  const target = Math.min(90, Math.floor(base));
   while (bubbles.length < target) bubbles.push(makeBubble());
   if (bubbles.length > target) bubbles.length = target;
   // stars
-  let starTarget = Math.max(10, Math.floor((cw * ch) / 70000));
+  let starTarget = Math.max(6, Math.floor((cw * ch) / 140000));
+  starTarget = Math.min(22, starTarget);
   while (stars.length < starTarget) stars.push(makeStar());
   if (stars.length > starTarget) stars.length = starTarget;
   // snowflakes
-  snowTarget = Math.max(20, Math.floor((cw * ch) / 35000));
+  snowTarget = Math.max(10, Math.floor((cw * ch) / 90000));
+  snowTarget = Math.min(36, snowTarget);
   while (snowflakes.length < snowTarget) snowflakes.push(makeSnowflake());
   if (snowflakes.length > snowTarget) snowflakes.length = snowTarget;
 }
@@ -645,7 +647,7 @@ function updateBubbleSplitPalette() {
 }
 
 function makeBubble(x, y, burst = false) {
-  const r = burst ? rand(10, 20) : rand(6, 18);
+  const r = burst ? rand(12, 26) : rand(10, 28);
   return {
     x: x !== undefined ? x : rand(0, cw),
     y: y !== undefined ? y : rand(ch * 0.6, ch + 50),
@@ -830,7 +832,7 @@ function makeStar() {
   return {
     x: rand(0, cw),
     y: rand(0, ch),
-    size: rand(1, 3),
+    size: rand(2, 6),
     alpha: rand(0.3, 0.8),
     twinkle: rand(0, Math.PI * 2),
     twinkleSpeed: rand(0.01, 0.05),
@@ -860,7 +862,7 @@ function makeSnowflake() {
     y: rand(-50, 0),
     vx: rand(-0.5, 0.5),
     vy: rand(0.5, 1.5),
-    size: rand(2, 5),
+    size: rand(3, 8),
     alpha: rand(0.6, 0.9),
     rot: rand(0, Math.PI * 2),
     vr: rand(-0.02, 0.02),
@@ -957,9 +959,9 @@ function startHeartRain(duration = 3000) {
       stopHeartRain();
       return;
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 1; i++) {
       const x = rand(0, cw);
-      const size = rand(10, 26);
+      const size = rand(20, 44);
       hearts.push({
         x,
         y: -20,
@@ -973,7 +975,7 @@ function startHeartRain(duration = 3000) {
         hue: rand(330, 360),
       });
     }
-    heartRainTimer = setTimeout(spawn, 70);
+    heartRainTimer = setTimeout(spawn, 130);
   };
   spawn();
 }

@@ -280,7 +280,7 @@ body {
 }
 
 h1 {
-  font-size: clamp(3rem, 10vw, 5rem);
+  font-size: clamp(3rem, 10vw, 6.5rem);
   margin: 16px 0 8px 0;
   transform: translateZ(30px);
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8);
@@ -288,15 +288,40 @@ h1 {
 }
 
 h2 {
-  font-size: clamp(2.4rem, 8vw, 4rem);
+  font-size: clamp(2.4rem, 8vw, 5.2rem);
   margin: 6px 0;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8);
   color: #ffffff;
 }
 
+/* Frosted glass around slide titles (only the top-level heading in each slide) */
+.slide > h1,
+.slide > h2 {
+  display: inline-block;
+  max-width: min(94vw, 1600px);
+  box-sizing: border-box;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Extra blur + grain overlay for a more frosted look */
+.slide > h1::before,
+.slide > h2::before {
+  content: none;
+}
+
+.slide > h1::after,
+.slide > h2::after {
+  content: none;
+}
+
 p,
 li {
-  font-size: clamp(2rem, 7.5vw, 3.2rem);
+  font-size: clamp(2rem, 7.5vw, 4.2rem);
   margin: 12px 0;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.8);
   color: #ffffff;
@@ -324,7 +349,7 @@ ul {
 .hint {
   position: static;
   margin-top: 10px;
-  font-size: 1em;
+  font-size: clamp(0.95rem, 2.2vw, 1.6rem);
   opacity: 0.7;
   text-align: center;
   transform: translateZ(10px);
@@ -639,8 +664,9 @@ ul {
 
 .content {
   margin: 16px auto 0;
-  max-width: 1040px;
-  padding: 32px 28px;
+  width: min(94vw, 1400px);
+  max-width: none;
+  padding: clamp(20px, 3.2vw, 56px) clamp(18px, 2.8vw, 48px);
   position: relative;
   /* Move visual card styling to pseudo-element so text doesn't bob */
   background: none;
@@ -684,9 +710,9 @@ ul {
   );
   border: 4px solid rgba(255, 255, 255, 0.7);
   border-radius: 999px;
-  padding: 40px 90px;
-  min-width: 450px;
-  font-size: clamp(1.8rem, 6vw, 4.5rem);
+  padding: clamp(22px, 3.8vw, 54px) clamp(42px, 7.2vw, 130px);
+  min-width: clamp(280px, 55vw, 760px);
+  font-size: clamp(1.8rem, 6vw, 5.4rem);
   font-weight: 900;
   color: #fff;
   cursor: pointer;
@@ -1043,10 +1069,10 @@ body.hold-shake #bubbleCanvas {
   }
 
   .nav-btn {
-    min-width: 100px;
-    min-height: 60px;
-    padding: 12px 24px;
-    font-size: 1.1rem;
+    min-width: clamp(150px, 18vw, 280px);
+    min-height: clamp(76px, 10vh, 132px);
+    padding: 0 clamp(18px, 2.8vw, 46px);
+    font-size: clamp(1.1rem, 2.6vw, 2.1rem);
     border-radius: 30px;
     border-width: 2px;
   }
