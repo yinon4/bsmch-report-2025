@@ -1293,7 +1293,21 @@ function playBoop() {
     if (!boopPool.length) initBoop();
     const a = boopPool[boopIndex++ % boopPool.length];
     a.currentTime = 0;
-    a.play().catch(() => {});
+    a.muted = false;
+    // iOS sometimes blocks HTMLAudio when the ringer is off; try, then fallback
+    const p = a.play();
+    if (p && typeof p.then === "function") {
+      p.catch(() => {
+        try {
+          // Fallback: WebAudio pop for mobile/iOS
+          ensureAudio();
+          if (audioCtx && audioCtx.state === "suspended") {
+            audioCtx.resume().catch(() => {});
+          }
+          playPop(1.1);
+        } catch (_) {}
+      });
+    }
   } catch (_) {}
 }
 

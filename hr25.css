@@ -652,14 +652,13 @@ ul {
   margin: 22px 0;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow:
-    /* balanced cyan/pink ring */
-    0 0 0 4px color-mix(in srgb, var(--accent-2) 50%, var(--accent-3) 50%),
-    /* cyan + pink outer glows */
-    0 20px 52px color-mix(in srgb, var(--accent-3) 55%, transparent),
+    /* balanced cyan/pink ring */ 0 0 0 4px
+      color-mix(in srgb, var(--accent-2) 50%, var(--accent-3) 50%),
+    /* cyan + pink outer glows */ 0 20px 52px
+      color-mix(in srgb, var(--accent-3) 55%, transparent),
     0 0 80px color-mix(in srgb, var(--accent-2) 55%, transparent),
     0 0 110px color-mix(in srgb, var(--accent-3) 40%, transparent),
-    /* soft white inner highlight */
-    inset 0 2px 8px rgba(255, 255, 255, 0.65);
+    /* soft white inner highlight */ inset 0 2px 8px rgba(255, 255, 255, 0.65);
   transform: translateZ(20px) scale(1);
   position: relative;
   overflow: visible;
@@ -702,8 +701,8 @@ ul {
 
 .reveal-btn:hover {
   transform: translateZ(20px) translateY(-6px) scale(1.08);
-  box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--accent-2) 55%, var(--accent-3) 45%),
+  box-shadow: 0 0 0 5px
+      color-mix(in srgb, var(--accent-2) 55%, var(--accent-3) 45%),
     0 30px 80px color-mix(in srgb, var(--accent-3) 70%, transparent),
     0 0 130px color-mix(in srgb, var(--accent-2) 70%, transparent),
     0 0 160px color-mix(in srgb, var(--accent-3) 55%, transparent),
@@ -714,8 +713,8 @@ ul {
 
 .reveal-btn:active {
   transform: translateZ(20px) translateY(2px) scale(1);
-  box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--accent-2) 60%, var(--accent-3) 40%),
+  box-shadow: 0 0 0 5px
+      color-mix(in srgb, var(--accent-2) 60%, var(--accent-3) 40%),
     0 26px 64px color-mix(in srgb, var(--accent-3) 80%, transparent),
     0 0 140px color-mix(in srgb, var(--accent-2) 75%, transparent),
     0 0 170px color-mix(in srgb, var(--accent-3) 60%, transparent),
