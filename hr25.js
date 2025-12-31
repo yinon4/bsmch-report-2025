@@ -36,6 +36,13 @@ function showSlide(i) {
   if (content) content.classList.add("hidden");
   if (revealBtn) revealBtn.style.display = "block";
   prevIndex = i;
+
+  // Stop endless finale effects when leaving the end screens
+  const endA = slides[slides.length - 1];
+  const endB = slides[slides.length - 2];
+  if (slides[i] !== endA && slides[i] !== endB) {
+    stopHeartRain();
+  }
 }
 
 function nextSlide() {
@@ -48,10 +55,15 @@ function nextSlide() {
 }
 
 function prevSlide() {
+  // Allow wrap-around from first slide to last
   if (index > 0) {
     // Back sound on navigating backwards (SFX)
     playBackSFX();
     index--;
+    showSlide(index);
+  } else {
+    playBackSFX();
+    index = slides.length - 1;
     showSlide(index);
   }
 }
@@ -320,8 +332,12 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       triggerColorBurst();
       // Extra hearts rain on final slide
       const slideEl = btn.closest(".slide");
-      if (slideEl && slides && slideEl === slides[slides.length - 1]) {
-        startHeartRain(4000);
+      if (slideEl && slides) {
+        const endA = slides[slides.length - 1];
+        const endB = slides[slides.length - 2];
+        if (slideEl === endA || slideEl === endB) {
+          startHeartRain(Infinity);
+        }
       }
       return;
     }
@@ -798,12 +814,24 @@ function drawHeart(h) {
 }
 
 // Heart rain effect for finales
+let heartRainTimer = null;
+let heartRainActive = false;
+
 function startHeartRain(duration = 3000) {
+  stopHeartRain();
+  heartRainActive = true;
+
   const start = performance.now();
+  const infinite = duration === Infinity || duration === null;
+
   const spawn = () => {
+    if (!heartRainActive) return;
     const nowTs = performance.now();
-    if (nowTs - start > duration) return;
-    for (let i = 0; i < 8; i++) {
+    if (!infinite && nowTs - start > duration) {
+      stopHeartRain();
+      return;
+    }
+    for (let i = 0; i < 4; i++) {
       const x = rand(0, cw);
       const size = rand(10, 26);
       hearts.push({
@@ -816,9 +844,17 @@ function startHeartRain(duration = 3000) {
         hue: rand(330, 360),
       });
     }
-    setTimeout(spawn, 70);
+    heartRainTimer = setTimeout(spawn, 70);
   };
   spawn();
+}
+
+function stopHeartRain() {
+  heartRainActive = false;
+  if (heartRainTimer) {
+    clearTimeout(heartRainTimer);
+    heartRainTimer = null;
+  }
 }
 
 // makeFirework/drawFirework removed
