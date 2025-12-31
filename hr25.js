@@ -146,7 +146,9 @@ function triggerRevealForButton(btn, variant) {
       content.style.setProperty("--card-origin-y", `${localYPct}%`);
     } catch (_) {}
     // next frame to allow transition; add ripple-in alongside show and grow
-    requestAnimationFrame(() => content.classList.add("show", "ripple-in", "grow-in"));
+    requestAnimationFrame(() =>
+      content.classList.add("show", "ripple-in", "grow-in")
+    );
     // After ripple completes, start continuous bobbing
     const onAnimEnd = (e) => {
       if (e.animationName === "content-ripple") {
@@ -256,7 +258,10 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       const speedMs = Math.max(28, 70 - p * 40); // faster at higher progress
       document.body.style.setProperty("--shake-amp", amp.toFixed(2));
       document.body.style.setProperty("--shake-rot", rot.toFixed(2));
-      document.body.style.setProperty("--shake-speed", `${speedMs.toFixed(0)}ms`);
+      document.body.style.setProperty(
+        "--shake-speed",
+        `${speedMs.toFixed(0)}ms`
+      );
     } catch (_) {}
     // Aggressive shake that intensifies with progress
     const shakeIntensity = p * 20; // 0 to 20 pixels - VIOLENT

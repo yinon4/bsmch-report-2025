@@ -15,9 +15,9 @@
   -ms-user-select: none;
 }
 
-    /* Card growth transform origin (percent within card box) */
-    --card-origin-x: 50%;
-    --card-origin-y: 50%;
+/* Card growth transform origin (percent within card box) */
+--card-origin-x: 50%;
+--card-origin-y: 50%;
 /* Ensure buttons are never text-selectable or show tap highlights */
 button,
 .nav-btn,
@@ -33,15 +33,15 @@ input[type="submit"],
   @keyframes card-grow {
     0% {
       transform: translateY(0) scale(0.02);
-      opacity: 0.0;
+      opacity: 0;
     }
     55% {
       transform: translateY(0) scale(1.08);
-      opacity: 1.0;
+      opacity: 1;
     }
     100% {
       transform: translateY(0) scale(1);
-      opacity: 1.0;
+      opacity: 1;
     }
   }
   -webkit-touch-callout: none; /* Disable iOS text selection/Callout */
@@ -59,7 +59,7 @@ input[type="submit"],
     outline: none;
   }
 }
-    transform-origin: var(--card-origin-x) var(--card-origin-y);
+transform-origin: var(--card-origin-x) var(--card-origin-y);
 
 :root {
   --bg1: #0f1226;
@@ -864,7 +864,8 @@ ul {
 
 /* Continuous gentle hover for revealed content */
 @keyframes content-bob {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) translateZ(10px) translateY(0);
   }
   50% {
@@ -878,31 +879,59 @@ ul {
     transform: translate3d(0px, 0px, 0) rotate(0deg);
   }
   12% {
-    transform: translate3d(calc(var(--shake-amp) * -1px), calc(var(--shake-amp) * 1px), 0)
+    transform: translate3d(
+        calc(var(--shake-amp) * -1px),
+        calc(var(--shake-amp) * 1px),
+        0
+      )
       rotate(calc(var(--shake-rot) * 1deg));
   }
   24% {
-    transform: translate3d(calc(var(--shake-amp) * 1px), calc(var(--shake-amp) * -1px), 0)
+    transform: translate3d(
+        calc(var(--shake-amp) * 1px),
+        calc(var(--shake-amp) * -1px),
+        0
+      )
       rotate(calc(var(--shake-rot) * -1deg));
   }
   36% {
-    transform: translate3d(calc(var(--shake-amp) * -1px), calc(var(--shake-amp) * -1px), 0)
+    transform: translate3d(
+        calc(var(--shake-amp) * -1px),
+        calc(var(--shake-amp) * -1px),
+        0
+      )
       rotate(calc(var(--shake-rot) * 0.75deg));
   }
   48% {
-    transform: translate3d(calc(var(--shake-amp) * 1px), calc(var(--shake-amp) * 1px), 0)
+    transform: translate3d(
+        calc(var(--shake-amp) * 1px),
+        calc(var(--shake-amp) * 1px),
+        0
+      )
       rotate(calc(var(--shake-rot) * -0.75deg));
   }
   60% {
-    transform: translate3d(calc(var(--shake-amp) * 0.8px), calc(var(--shake-amp) * -0.8px), 0)
+    transform: translate3d(
+        calc(var(--shake-amp) * 0.8px),
+        calc(var(--shake-amp) * -0.8px),
+        0
+      )
       rotate(calc(var(--shake-rot) * 0.5deg));
   }
   72% {
-    transform: translate3d(calc(var(--shake-amp) * -0.8px), calc(var(--shake-amp) * 0.8px), 0)
+    transform: translate3d(
+        calc(var(--shake-amp) * -0.8px),
+        calc(var(--shake-amp) * 0.8px),
+        0
+      )
       rotate(calc(var(--shake-rot) * -0.5deg));
   }
   84% {
-    transform: translate3d(calc(var(--shake-amp) * 0.5px), calc(var(--shake-amp) * 0.5px), 0)
+    transform: translate3d(
+        calc(var(--shake-amp) * 0.5px),
+        calc(var(--shake-amp) * 0.5px),
+        0
+      )
       rotate(0deg);
   }
   100% {
