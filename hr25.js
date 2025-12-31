@@ -123,8 +123,39 @@ function triggerRevealForButton(btn, variant) {
   const content = slide.querySelector(".content");
   if (content) {
     content.classList.remove("hidden");
-    // next frame to allow transition
-    requestAnimationFrame(() => content.classList.add("show"));
+    // Compute ripple origin from button center (percentage of viewport)
+    const btnRect = btn.getBoundingClientRect();
+    const centerX = btnRect.left + btnRect.width / 2;
+    const centerY = btnRect.top + btnRect.height / 2;
+    const xPct = Math.max(0, Math.min(100, (centerX / cw) * 100));
+    const yPct = Math.max(0, Math.min(100, (centerY / ch) * 100));
+    // Also compute transform-origin within content box for card growth
+    const contentRect = content.getBoundingClientRect();
+    const localXPct = Math.max(
+      0,
+      Math.min(100, ((centerX - contentRect.left) / contentRect.width) * 100)
+    );
+    const localYPct = Math.max(
+      0,
+      Math.min(100, ((centerY - contentRect.top) / contentRect.height) * 100)
+    );
+    try {
+      content.style.setProperty("--ripple-x", `${xPct}%`);
+      content.style.setProperty("--ripple-y", `${yPct}%`);
+      content.style.setProperty("--card-origin-x", `${localXPct}%`);
+      content.style.setProperty("--card-origin-y", `${localYPct}%`);
+    } catch (_) {}
+    // next frame to allow transition; add ripple-in alongside show and grow
+    requestAnimationFrame(() => content.classList.add("show", "ripple-in", "grow-in"));
+    // After ripple completes, start continuous bobbing
+    const onAnimEnd = (e) => {
+      if (e.animationName === "content-ripple") {
+        // Start bobbing; when grow-in is active too, CSS runs both animations together
+        content.classList.add("bob-loop");
+        content.removeEventListener("animationend", onAnimEnd);
+      }
+    };
+    content.addEventListener("animationend", onAnimEnd);
     const rect = btn.getBoundingClientRect();
     fireworks.push(
       makeFirework(rect.left + rect.width / 2, rect.top + rect.height / 2)
@@ -188,6 +219,13 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
 
   const cleanupHold = (completed = false) => {
     holding = false;
+    // Stop global shake
+    try {
+      document.body.classList.remove("hold-shake");
+      document.body.style.removeProperty("--shake-amp");
+      document.body.style.removeProperty("--shake-rot");
+      document.body.style.removeProperty("--shake-speed");
+    } catch (_) {}
     if (holdIndicator) {
       holdIndicator.remove();
       holdIndicator = null;
@@ -211,6 +249,15 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     if (holdIndicator) {
       holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
     }
+    // Drive global shake intensity and speed via CSS variables
+    try {
+      const amp = 1 + p * 9; // 1 -> 10 px multiplier
+      const rot = 0.2 + p * 1.3; // 0.2 -> 1.5 deg multiplier
+      const speedMs = Math.max(28, 70 - p * 40); // faster at higher progress
+      document.body.style.setProperty("--shake-amp", amp.toFixed(2));
+      document.body.style.setProperty("--shake-rot", rot.toFixed(2));
+      document.body.style.setProperty("--shake-speed", `${speedMs.toFixed(0)}ms`);
+    } catch (_) {}
     // Aggressive shake that intensifies with progress
     const shakeIntensity = p * 20; // 0 to 20 pixels - VIOLENT
     const shakeSpeed = 10 + p * 35; // faster as progress increases
@@ -281,6 +328,14 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     // Start the managed boom when hold begins
     holdCompleted = false;
     startHoldBoom();
+    // Begin global shake effect while holding
+    try {
+      document.body.classList.add("hold-shake");
+      // Initialize baseline shake variables
+      document.body.style.setProperty("--shake-amp", "1");
+      document.body.style.setProperty("--shake-rot", "0.2");
+      document.body.style.setProperty("--shake-speed", "70ms");
+    } catch (_) {}
     // start hold tracking
     holding = true;
     holdStart = performance.now();

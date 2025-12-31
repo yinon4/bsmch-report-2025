@@ -15,6 +15,9 @@
   -ms-user-select: none;
 }
 
+    /* Card growth transform origin (percent within card box) */
+    --card-origin-x: 50%;
+    --card-origin-y: 50%;
 /* Ensure buttons are never text-selectable or show tap highlights */
 button,
 .nav-btn,
@@ -26,6 +29,21 @@ input[type="submit"],
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  /* Card grows from nothing with a slight overshoot */
+  @keyframes card-grow {
+    0% {
+      transform: translateY(0) scale(0.02);
+      opacity: 0.0;
+    }
+    55% {
+      transform: translateY(0) scale(1.08);
+      opacity: 1.0;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1.0;
+    }
+  }
   -webkit-touch-callout: none; /* Disable iOS text selection/Callout */
   -webkit-tap-highlight-color: transparent; /* Remove mobile tap highlight */
 }
@@ -41,6 +59,7 @@ input[type="submit"],
     outline: none;
   }
 }
+    transform-origin: var(--card-origin-x) var(--card-origin-y);
 
 :root {
   --bg1: #0f1226;
@@ -50,6 +69,13 @@ input[type="submit"],
   --accent-3: #7bdff2;
   --text: #ffffff;
   background: linear-gradient(180deg, var(--accent-2), var(--accent-3));
+  /* Shake control variables (driven by JS during hold) */
+  --shake-amp: 1; /* unitless amplitude multiplier */
+  --shake-rot: 0.2; /* unitless rotation multiplier */
+  --shake-speed: 60ms; /* animation speed */
+  /* Ripple origin (percentage) for reveal */
+  --ripple-x: 50%;
+  --ripple-y: 50%;
 }
 
 body {
@@ -615,14 +641,11 @@ ul {
   margin: 16px auto 0;
   max-width: 1040px;
   padding: 32px 28px;
-  background: radial-gradient(
-    160% 140% at 30% 20%,
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0.06)
-  );
-  border: 2px solid rgba(255, 255, 255, 0.26);
-  border-radius: 38px;
-  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4);
+  position: relative;
+  /* Move visual card styling to pseudo-element so text doesn't bob */
+  background: none;
+  border: none;
+  border-radius: 38px; /* keep radius for clipping */
   opacity: 0;
   transform: scale(0.96) translateZ(10px);
   transition: opacity 450ms cubic-bezier(0.2, 0.8, 0.2, 1.2),
@@ -633,6 +656,24 @@ ul {
   opacity: 1;
   transform: scale(1) translateZ(10px);
   animation: content-reveal 600ms cubic-bezier(0.2, 0.8, 0.2, 1.1) both;
+}
+
+/* Visual card layer that can bob independently of text */
+.content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 38px;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    160% 140% at 30% 20%,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.06)
+  );
+  border: 2px solid rgba(255, 255, 255, 0.26);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4);
+  will-change: transform;
 }
 
 .reveal-btn {
@@ -793,6 +834,124 @@ ul {
     transform: scale(1) translateZ(10px) rotateY(0deg);
     filter: blur(0);
   }
+}
+
+/* Card ripple-in using expanding clip-path circle at origin */
+@keyframes content-ripple {
+  0% {
+    clip-path: circle(0% at var(--ripple-x) var(--ripple-y));
+  }
+  100% {
+    clip-path: circle(140% at var(--ripple-x) var(--ripple-y));
+  }
+}
+
+/* Text ripple-in: soft scale, blur clear, and fade */
+@keyframes text-ripple {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+    filter: blur(6px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Continuous gentle hover for revealed content */
+@keyframes content-bob {
+  0%, 100% {
+    transform: scale(1) translateZ(10px) translateY(0);
+  }
+  50% {
+    transform: scale(1) translateZ(10px) translateY(-6px);
+  }
+}
+
+/* Whole-screen subtle shake used while holding reveal */
+@keyframes global-shake {
+  0% {
+    transform: translate3d(0px, 0px, 0) rotate(0deg);
+  }
+  12% {
+    transform: translate3d(calc(var(--shake-amp) * -1px), calc(var(--shake-amp) * 1px), 0)
+      rotate(calc(var(--shake-rot) * 1deg));
+  }
+  24% {
+    transform: translate3d(calc(var(--shake-amp) * 1px), calc(var(--shake-amp) * -1px), 0)
+      rotate(calc(var(--shake-rot) * -1deg));
+  }
+  36% {
+    transform: translate3d(calc(var(--shake-amp) * -1px), calc(var(--shake-amp) * -1px), 0)
+      rotate(calc(var(--shake-rot) * 0.75deg));
+  }
+  48% {
+    transform: translate3d(calc(var(--shake-amp) * 1px), calc(var(--shake-amp) * 1px), 0)
+      rotate(calc(var(--shake-rot) * -0.75deg));
+  }
+  60% {
+    transform: translate3d(calc(var(--shake-amp) * 0.8px), calc(var(--shake-amp) * -0.8px), 0)
+      rotate(calc(var(--shake-rot) * 0.5deg));
+  }
+  72% {
+    transform: translate3d(calc(var(--shake-amp) * -0.8px), calc(var(--shake-amp) * 0.8px), 0)
+      rotate(calc(var(--shake-rot) * -0.5deg));
+  }
+  84% {
+    transform: translate3d(calc(var(--shake-amp) * 0.5px), calc(var(--shake-amp) * 0.5px), 0)
+      rotate(0deg);
+  }
+  100% {
+    transform: translate3d(0px, 0px, 0) rotate(0deg);
+  }
+}
+
+/* Apply shake to body and bubble canvas during hold */
+body.hold-shake {
+  animation: global-shake var(--shake-speed) ease-in-out infinite;
+  will-change: transform;
+}
+body.hold-shake #bubbleCanvas {
+  animation: global-shake var(--shake-speed) ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Apply ripple-in when revealing content */
+.content.ripple-in {
+  /* run alongside content-reveal transform animation without conflict */
+  animation: content-ripple 1400ms cubic-bezier(0.2, 0.8, 0.2, 1.05) forwards;
+}
+.content.ripple-in > * {
+  opacity: 0;
+  animation: text-ripple 1200ms ease-out both;
+}
+/* Subtle stagger for first few elements */
+.content.ripple-in > *:nth-child(1) {
+  animation-delay: 120ms;
+}
+.content.ripple-in > *:nth-child(2) {
+  animation-delay: 240ms;
+}
+.content.ripple-in > *:nth-child(3) {
+  animation-delay: 360ms;
+}
+.content.ripple-in > *:nth-child(4) {
+  animation-delay: 480ms;
+}
+.content.ripple-in > *:nth-child(5) {
+  animation-delay: 600ms;
+}
+.content.ripple-in > *:nth-child(6) {
+  animation-delay: 720ms;
+}
+
+/* Enable continuous bobbing after reveal */
+.content.bob-loop::before {
+  animation: content-bob 3.6s ease-in-out infinite;
 }
 
 /* Mobile adjustments */
