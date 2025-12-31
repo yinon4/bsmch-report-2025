@@ -3,6 +3,30 @@ let index = 0;
 let prevIndex = 0;
 let onEndScreen = false;
 
+const slideCounterEl = document.getElementById("slideCounter");
+const slideCounterFillEl = slideCounterEl
+  ? slideCounterEl.querySelector(".slide-counter__fill")
+  : null;
+const slideCounterTextEl = slideCounterEl
+  ? slideCounterEl.querySelector(".slide-counter__text")
+  : null;
+function updateSlideCounter() {
+  if (!slideCounterEl) return;
+  const total = slides ? slides.length : 0;
+  const current = Math.min(total, Math.max(1, index + 1));
+
+  slideCounterEl.setAttribute("aria-valuemax", String(Math.max(1, total)));
+  slideCounterEl.setAttribute("aria-valuenow", String(current));
+
+  const pct = total > 0 ? (current / total) * 100 : 0;
+  if (slideCounterFillEl) {
+    slideCounterFillEl.style.width = `${pct}%`;
+  }
+  if (slideCounterTextEl) {
+    slideCounterTextEl.textContent = `${current}/${total}`;
+  }
+}
+
 function showSlide(i) {
   const direction = i > prevIndex ? "right" : "left";
   const leaving = slides[prevIndex];
@@ -37,6 +61,7 @@ function showSlide(i) {
   if (content) content.classList.add("hidden");
   if (revealBtn) revealBtn.style.display = "block";
   prevIndex = i;
+  updateSlideCounter();
 
   // Stop endless finale effects when leaving the end screens
   const endA = slides[slides.length - 1];
@@ -45,6 +70,9 @@ function showSlide(i) {
     stopHeartRain();
   }
 }
+
+// Initial render
+updateSlideCounter();
 
 function nextSlide() {
   if (index < slides.length - 1) {

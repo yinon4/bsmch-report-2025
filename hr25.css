@@ -14,10 +14,6 @@
   -moz-user-select: none;
   -ms-user-select: none;
 }
-
-/* Card growth transform origin (percent within card box) */
---card-origin-x: 50%;
---card-origin-y: 50%;
 /* Ensure buttons are never text-selectable or show tap highlights */
 button,
 .nav-btn,
@@ -59,9 +55,11 @@ input[type="submit"],
     outline: none;
   }
 }
-transform-origin: var(--card-origin-x) var(--card-origin-y);
 
 :root {
+  /* Card growth transform origin (percent within card box) */
+  --card-origin-x: 50%;
+  --card-origin-y: 50%;
   --bg1: #0f1226;
   --bg2: #23123a;
   --accent: #ffd166;
@@ -104,6 +102,53 @@ body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+}
+
+/* Slide counter (current / total) */
+.slide-counter {
+  position: fixed;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 130;
+  width: clamp(160px, 40vw, 240px);
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-weight: 800;
+  font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slide-counter__track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.slide-counter__fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--accent-3),
+    color-mix(in srgb, var(--accent-2) 70%, var(--accent))
+  );
+}
+
+.slide-counter__text {
+  text-align: center;
 }
 
 .slide {
@@ -446,6 +491,7 @@ ul {
   gap: 18px;
   justify-content: center;
   margin-top: 20px;
+  flex-wrap: nowrap;
 }
 
 .controls {
@@ -664,7 +710,7 @@ ul {
 
 .content {
   margin: 16px auto 0;
-  width: min(94vw, 1400px);
+  /* width: min(94vw, 1400px); */
   max-width: none;
   padding: clamp(20px, 3.2vw, 56px) clamp(18px, 2.8vw, 48px);
   position: relative;
@@ -676,6 +722,7 @@ ul {
   transform: scale(0.96) translateZ(10px);
   transition: opacity 450ms cubic-bezier(0.2, 0.8, 0.2, 1.2),
     transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1.2);
+  transform-origin: var(--card-origin-x) var(--card-origin-y);
 }
 
 .content.show {
@@ -1065,16 +1112,26 @@ body.hold-shake #bubbleCanvas {
   .navigation {
     gap: 16px;
     margin-top: 24px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 16px;
+    justify-content: space-between;
   }
 
   .nav-btn {
-    min-width: clamp(150px, 18vw, 280px);
-    min-height: clamp(76px, 10vh, 132px);
-    padding: 0 clamp(18px, 2.8vw, 46px);
-    font-size: clamp(1.1rem, 2.6vw, 2.1rem);
+    /* Keep the button box stable on mobile; only text scales */
+    min-width: 0;
+    min-height: 74px;
+    padding: 0 clamp(16px, 3.6vw, 28px);
+    font-size: clamp(1.15rem, 4.2vw, 1.9rem);
     border-radius: 30px;
     border-width: 2px;
+  }
+
+  .navigation .nav-btn {
+    flex: 1 1 0;
+    white-space: nowrap;
   }
 
   .nav-btn::before {
@@ -1126,24 +1183,30 @@ body.hold-shake #bubbleCanvas {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     will-change: transform;
+  }
 
-    @media (max-width: 400px) {
-      .reveal-btn {
-        padding: 16px 24px;
-        font-size: clamp(1.4rem, 5vw, 1.8rem);
-      }
+  @media (max-width: 400px) {
+    .reveal-btn {
+      padding: 16px 24px;
+      font-size: clamp(1.4rem, 5vw, 1.8rem);
+    }
 
-      .nav-btn {
-        min-width: 90px;
-        min-height: 55px;
-        font-size: 1rem;
-        padding: 10px 20px;
-      }
+    .nav-btn {
+      min-width: 0;
+      min-height: 66px;
+      padding: 0 18px;
+      /* Still allow text to grow, but keep the button box stable */
+      font-size: clamp(1.05rem, 5vw, 1.7rem);
+    }
 
-      h1 {
-        font-size: clamp(1.8rem, 7vw, 2.8rem);
-        margin: 30px 0 8px 0;
-      }
+    .navigation .nav-btn {
+      flex: 1 1 0;
+      white-space: nowrap;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 7vw, 2.8rem);
+      margin: 30px 0 8px 0;
     }
   }
 

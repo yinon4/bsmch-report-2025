@@ -14,6 +14,19 @@
   <body>
     <canvas id="bubbleCanvas" class="bubble-bg"></canvas>
     <div class="click-darken"></div>
+    <div
+      id="slideCounter"
+      class="slide-counter"
+      role="progressbar"
+      aria-label="התקדמות השקופיות"
+      aria-live="polite"
+      aria-valuemin="1"
+    >
+      <div class="slide-counter__track" aria-hidden="true">
+        <div class="slide-counter__fill" aria-hidden="true"></div>
+      </div>
+      <div class="slide-counter__text" aria-hidden="true"></div>
+    </div>
 
     <!-- Slide 1 -->
     <div class="slide active">
@@ -273,6 +286,7 @@
       <div class="hidden content">
         <h2 class="highlight">צוות אסגרד ⚔️</h2>
         <p class="emoji">🔥🔥🔥</p>
+        <p>כל הכבוד ותודה רבה על העבודה שלכם השנה</p>
         <div class="navigation">
           <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
           <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
