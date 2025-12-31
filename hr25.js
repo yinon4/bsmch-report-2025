@@ -8,7 +8,8 @@ function showSlide(i) {
   if (leaving) {
     leaving.classList.add(
       "leaving",
-      direction === "right" ? "exit-left" : "exit-right"
+      // Flip exit direction to match expected arrow flow
+      direction === "right" ? "exit-right" : "exit-left"
     );
     leaving.addEventListener(
       "animationend",
@@ -23,7 +24,8 @@ function showSlide(i) {
   );
   slides[i].classList.add(
     "active",
-    direction === "right" ? "enter-right" : "enter-left"
+    // Flip enter direction so next (→) slides in from left
+    direction === "right" ? "enter-left" : "enter-right"
   );
   // Subtle whoosh on slide transition
   playWhoosh(direction);
@@ -55,11 +57,12 @@ function prevSlide() {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowRight" || e.key === " ") {
-    nextSlide();
-  }
-  if (e.key === "ArrowLeft") {
+  // RTL: Right arrow navigates backward, Left arrow forward
+  if (e.key === "ArrowRight") {
     prevSlide();
+  }
+  if (e.key === "ArrowLeft" || e.key === " ") {
+    nextSlide();
   }
 });
 
