@@ -1,311 +1,342 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, user-scalable=no"
+    />
+    <title>בסמ"ח 2025</title>
+    <link rel="stylesheet" href="hr25.css" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <title>בסמ"ח 2025 – סיכום שנה</title>
-  <link rel="stylesheet" href="hr25.css" />
-</head>
+  <body>
+    <canvas id="bubbleCanvas" class="bubble-bg"></canvas>
+    <div class="click-darken"></div>
 
-<body>
-  <canvas id="bubbleCanvas" class="bubble-bg"></canvas>
-  <div class="click-darken"></div>
+    <!-- Slide 1 -->
+    <div class="slide active">
+      <h1>🎖️ בסמ"ח 2025 🎖️</h1>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <h2>הסיכום השנתי שכולכם ביקשתם</h2>
+        <p class="emoji">💥📊🤣</p>
+        <div class="navigation">
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
+      </div>
+      <div class="hint">החזק כפתור שלוש שניות כדי לגלות ⏱️👉</div>
+    </div>
 
-  <!-- Slide 1 -->
-  <div class="slide active">
-    <h1>🎖️ בסמ"ח 2025 🎖️</h1>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <h2>הסיכום השנתי שכולכם ביקשתם</h2>
-      <p class="emoji">💥📊🤣</p>
-      <div class="navigation">
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 2 -->
+    <div class="slide">
+      <h2>כמה מספרים 📈</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <ul>
+          <li>קורסים שהסתיימו: <span class="highlight">46</span></li>
+          <li>חניכים שהוכשרו: <span class="highlight">1490</span></li>
+          <li>בסמ"חניקים חדשים ביחידה: <span class="highlight">99</span></li>
+        </ul>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-    <div class="hint">החזק כפתור שלוש שניות כדי לגלות ⏱️👉</div>
-  </div>
 
-  <!-- Slide 2 -->
-  <div class="slide">
-    <h2>כמה מספרים 📈</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <ul>
-        <li>קורסים שהסתיימו: <span class="highlight">46</span></li>
-        <li>חניכים שהוכשרו: <span class="highlight">1490</span></li>
-        <li>בסמ"חניקים חדשים ביחידה: <span class="highlight">99</span></li>
-      </ul>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 4 -->
+    <div class="slide">
+      <h2>לוחמי הדיסקורד 💬</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <p>הקורסים עם הכי הרבה הערות משמעת :</p>
+        <ul>
+          <li>🥇 תכנות שכ"ג</li>
+          <li>🥈 דבאופס איי טי א</li>
+          <li>🥉 מפ"ל מ"ט</li>
+        </ul>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 4 -->
-  <div class="slide">
-    <h2>לוחמי הדיסקורד 💬</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <p>הקורסים עם הכי הרבה הערות משמעת :</p>
-      <ul>
-        <li>🥇 תכנות שכ"ג</li>
-        <li>🥈 דבאופס איי טי א</li>
-        <li>🥉 מפ"ל מ"ט</li>
-      </ul>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 5 -->
+    <div class="slide">
+      <h2>הקורסים ששכחו הכי הרבה סולו 🕜</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <ul>
+          <li>🥇 איי טי א</li>
+          <li>🥈 סייבר כ"ח א</li>
+          <li>🥉 דבאופס י"ג א</li>
+        </ul>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 5 -->
-  <div class="slide">
-    <h2>הקורסים ששכחו הכי הרבה סולו 🕜</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <ul>
-        <li>🥇 איי טי א</li>
-        <li>🥈 סייבר כ"ח א</li>
-        <li>🥉 דבאופס י"ג א</li>
-      </ul>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 7 -->
+    <div class="slide">
+      <h2>קורסים עם רגשות ❤️</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <p>
+          הקורס הכי נחמד (ציונים אישיותיים):
+          <span class="highlight">קיו איי ס</span>
+        </p>
+        <p>הקורס הכי פחות נחמד: <span class="highlight">מפ"ל מ"ט 😈</span></p>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 7 -->
-  <div class="slide">
-    <h2>קורסים עם רגשות ❤️</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <p>
-        הקורס הכי נחמד (ציונים אישיותיים):
-        <span class="highlight">קיו איי ס</span>
-      </p>
-      <p>הקורס הכי פחות נחמד: <span class="highlight">מפ"ל מ"ט 😈</span></p>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 8 -->
+    <div class="slide">
+      <h2>מגמה רוח רפאים 📭</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <p>המגמה שלא ענתה על השאלון שלי:</p>
+        <h1 class="highlight">סייבר 👻</h1>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 8 -->
-  <div class="slide">
-    <h2>מגמה רוח רפאים 📭</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <p>המגמה שלא ענתה על השאלון שלי:</p>
-      <h1 class="highlight">סייבר 👻</h1>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 9 -->
+    <div class="slide">
+      <h2>פרסים אישיים 🏆</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <ul>
+          <li>
+            החייל הכי צעיר:
+            <b><span class="highlight">ליאם שמילוביץ</span></b> 🐣
+          </li>
+          <li>
+            הקצין הכי צהוב: <b><span class="highlight">נתן</span></b> 🟡
+          </li>
+          <li>
+            קצין השנה: <b><span class="highlight">זיו</span></b> 🏅
+          </li>
+          <li>
+            חייל השנה: <b><span class="highlight">אוראל</span></b> 🥇
+          </li>
+        </ul>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 9 -->
-  <div class="slide">
-    <h2>פרסים אישיים 🏆</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <ul>
-        <li>החייל הכי צעיר: <b><span class="highlight">ליאם שמילוביץ</span></b> 🐣</li>
-        <li>הקצין הכי צהוב: <b><span class="highlight">נתן</span></b> 🟡</li>
-        <li>קצין השנה: <b><span class="highlight">זיו</span></b> 🏅</li>
-        <li>חייל השנה: <b><span class="highlight">אוראל</span></b> 🥇</li>
-      </ul>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 6 -->
+    <div class="slide">
+      <h2>המפקדים שהעירו הכי הרבה הערות משמעת 👮‍♂️</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <ul>
+          <li><span class="highlight">🥇 יאן</span></li>
+          <li>🥈 בארי</li>
+          <li>🥉 חג'אג'</li>
+        </ul>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 6 -->
-  <div class="slide">
-    <h2>המפקדים שהעירו הכי הרבה הערות משמעת 👮‍♂️</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <ul>
-        <li><span class="highlight">🥇 יאן</span></li>
-        <li>🥈 בארי</li>
-        <li>🥉 חג'אג'</li>
-      </ul>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 10 -->
+    <div class="slide">
+      <h2>אופנה וריהוט 👕</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <ul>
+          <li>
+            הכי פחות מדוגם: <b><span class="highlight">אורי כהן</span></b>
+          </li>
+          <li>
+            העמדה הכי יפה: <b><span class="highlight">הלל שוורץ</span></b>
+          </li>
+          <li>
+            הכי הרבה סקרים: <b><span class="highlight">אורי זירקל</span></b>
+          </li>
+        </ul>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 10 -->
-  <div class="slide">
-    <h2>אופנה וריהוט 👕</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <ul>
-        <li>הכי פחות מדוגם: <b><span class="highlight">אורי כהן</span></b></li>
-        <li>העמדה הכי יפה: <b><span class="highlight">הלל שוורץ</span></b></li>
-        <li>הכי הרבה סקרים: <b><span class="highlight">אורי זירקל</span></b></li>
-      </ul>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 3 -->
+    <div class="slide">
+      <h2>ביזנס זה ביזנס 💰</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <p>המדור הכי רווחי:</p>
+        <h1 class="highlight">מדור ליבה 💸</h1>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 3 -->
-  <div class="slide">
-    <h2>ביזנס זה ביזנס 💰</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <p>המדור הכי רווחי:</p>
-      <h1 class="highlight">מדור ליבה 💸</h1>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 11 -->
+    <div class="slide">
+      <h2>מצוינות קולינרית 🍽️</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <p>האוכל הכי טעים בחדא:</p>
+        <h1 class="highlight">🥘 קוסקוס 🥘</h1>
+        <p>(לפי הצבעות)</p>
+        <p>האוכל בית הכי טוב:</p>
+        <ul>
+          <li><span class="highlight">רונה פרץ</span></li>
+          <li><span class="highlight">יובל גלבוע</span></li>
+        </ul>
+        <p>(תיקו תיקו)</p>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 11 -->
-  <div class="slide">
-    <h2>מצוינות קולינרית 🍽️</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <p>האוכל הכי טעים בחדא:</p>
-      <h1 class="highlight">🥘 קוסקוס 🥘</h1>
-      <p>(לפי הצבעות)</p>
-      <p>האוכל בית הכי טוב:</p>
-      <ul>
-        <li><span class="highlight">רונה פרץ</span></li>
-        <li><span class="highlight">יובל גלבוע</span></li>
-      </ul>
-      <p>(תיקו תיקו)</p>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 12 -->
+    <div class="slide">
+      <h2>כיף וכאב 🚗</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <p>היציאות הכי טובות:</p>
+        <ul>
+          <li><span class="highlight">🥇 גוסטה</span></li>
+          <li><span class="highlight">🥈 קפה רגע</span></li>
+          <li><span class="highlight">🥉 לייזר טאג</span></li>
+        </ul>
+        <ul>
+          <li>
+            הקורס הכי ברברי: <b><span class="highlight">אר"פ 🪓</span></b>
+          </li>
+          <li>
+            החיה הקורסית הכי טובה:
+            <b><span class="highlight">קיפוד – תכנות שכ"משהו 🦔</span></b>
+          </li>
+        </ul>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 12 -->
-  <div class="slide">
-    <h2>כיף וכאב 🚗</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <p>היציאות הכי טובות:</p>
-      <ul>
-        <li><span class="highlight">🥇 גוסטה</span></li>
-        <li><span class="highlight">🥈 קפה רגע</span></li>
-        <li><span class="highlight">🥉 לייזר טאג</span></li>
-      </ul>
-      <ul>
-        <li>הקורס הכי ברברי: <b><span class="highlight">אר"פ 🪓</span></b></li>
-        <li>החיה הקורסית הכי טובה: <b><span class="highlight">קיפוד – תכנות שכ"משהו 🦔</span></b></li>
-      </ul>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 13 -->
+    <div class="slide">
+      <h2>מצוינות 🧠</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <ul>
+          <li>
+            מוזיקה הכי טובה: <b><span class="highlight">צוות מאה 🎶</span></b>
+          </li>
+          <li>
+            המדור הכי מגובש: <b><span class="highlight">מדריה 🤝</span></b>
+          </li>
+          <li>
+            הטיול הכי טוב: <b><span class="highlight">אילת 🌊</span></b>
+          </li>
+          <li>
+            הרמ״ד שהדיח הכי הרבה חניכים:
+            <b><span class="highlight">אנציו 💥</span></b>
+          </li>
+        </ul>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 13 -->
-  <div class="slide">
-    <h2>מצוינות 🧠</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <ul>
-        <li>מוזיקה הכי טובה: <b><span class="highlight">צוות מאה 🎶</span></b></li>
-        <li>המדור הכי מגובש: <b><span class="highlight">מדריה 🤝</span></b></li>
-        <li>הטיול הכי טוב: <b><span class="highlight">אילת 🌊</span></b></li>
-        <li>הרמ״ד שהדיח הכי הרבה חניכים: <b><span class="highlight">אנציו 💥</span></b></li>
-      </ul>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 15 -->
+    <div class="slide">
+      <h1>🏆 צוות השנה 🏆</h1>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <h1 class="highlight">צוות אסגרד ⚔️</h1>
+        <p class="emoji">🔥🔥🔥</p>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 15 -->
-  <div class="slide">
-    <h1>🏆 צוות השנה 🏆</h1>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <h1 class="highlight">צוות אסגרד ⚔️</h1>
-      <p class="emoji">🔥🔥🔥</p>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 14 -->
+    <div class="slide">
+      <h2>תעלומות לא פתורות 🤯</h2>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <p>איך באמת קוראים למפקד היחידה איתי חיון?</p>
+        <ul>
+          <li>חיתי איון?</li>
+          <li>תייחה?</li>
+          <li>תייחיי?</li>
+        </ul>
+        <p>(כנראה שלעולם לא נדע)</p>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 14 -->
-  <div class="slide">
-    <h2>תעלומות לא פתורות 🤯</h2>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <p>איך באמת קוראים למפקד היחידה איתי חיון?</p>
-      <ul>
-        <li>חיתי איון?</li>
-        <li>תייחה?</li>
-        <li>תייחיי?</li>
-      </ul>
-      <p>(כנראה שלעולם לא נדע)</p>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 16 -->
+    <div class="slide">
+      <h1>🙏 תודות 🙏</h1>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <h2>תודה לכל המשתתפים בשאלון</h2>
+        <br />
+        <h2>תודה מיוחדת ל:</h2>
+        <ul>
+          <li>צוות אסגרד - על העבודה הקשה 💪</li>
+          <li>סגלים - על ההכוונה והליווי 🎓</li>
+          <li>מעטפת - על התמיכה והמקצועיות 🧰</li>
+          <li>חניכים - על האנרגיה והמוטיבציה 🚀</li>
+          <li>קצינים - על המסירות וההתמדה 🤓</li>
+        </ul>
+        <br />
+        <h1 class="highlight">שנה נפלאה לכולנו! 🎉</h1>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+          <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 16 -->
-  <div class="slide">
-    <h1>🙏 תודות 🙏</h1>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <h2>תודה לכל המשתתפים בשאלון</h2>
-      <br />
-      <h2>תודה מיוחדת ל:</h2>
-      <ul>
-        <li>צוות אסגרד - על העבודה הקשה 💪</li>
-        <li>סגלים - על ההכוונה והליווי 🎓</li>
-        <li>מעטפת - על התמיכה והמקצועיות 🧰</li>
-        <li>חניכים - על האנרגיה והמוטיבציה 🚀</li>
-        <li>קצינים - על המסירות וההתמדה 🤓</li>
-      </ul>
-      <br />
-      <h1 class="highlight">שנה נפלאה לכולנו! 🎉</h1>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-        <button class="nav-btn next-btn" aria-label="הבא">הבא</button>
+    <!-- Slide 17 -->
+    <div class="slide">
+      <h1>מקווים שנהנתם 😘</h1>
+      <button class="reveal-btn">גלה</button>
+      <div class="hidden content">
+        <h1 class="highlight">❤️ באהבה, צוות פיתוח ❤️</h1>
+        <div class="navigation">
+          <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Slide 17 -->
-  <div class="slide">
-    <h1>מקווים שנהנתם 😘</h1>
-    <button class="reveal-btn">גלה</button>
-    <div class="hidden content">
-      <h1 class="highlight">❤️ באהבה, צוות פיתוח ❤️</h1>
-      <div class="navigation">
-        <button class="nav-btn prev-btn" aria-label="חזור">חזור</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="hr25.js"></script>
-</body>
-
+    <script src="hr25.js"></script>
+  </body>
 </html>
