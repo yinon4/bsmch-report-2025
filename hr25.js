@@ -538,6 +538,112 @@ function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
 
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function parseCssColorToRgb(input) {
+  if (!input) return null;
+  const s = String(input).trim();
+
+  // #RGB / #RRGGBB
+  if (s[0] === "#") {
+    const hex = s.slice(1);
+    if (hex.length === 3) {
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+      return { r, g, b };
+    }
+    if (hex.length === 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+      return { r, g, b };
+    }
+    return null;
+  }
+
+  // rgb()/rgba()
+  const m = s.match(/rgba?\(([^)]+)\)/i);
+  if (m) {
+    const parts = m[1]
+      .split(",")
+      .map((p) => p.trim())
+      .slice(0, 3)
+      .map((p) => Number.parseFloat(p));
+    if (parts.length !== 3 || parts.some((v) => Number.isNaN(v))) return null;
+    return {
+      r: clamp(parts[0], 0, 255),
+      g: clamp(parts[1], 0, 255),
+      b: clamp(parts[2], 0, 255),
+    };
+  }
+
+  return null;
+}
+
+function rgbToHsl({ r, g, b }) {
+  const rr = r / 255;
+  const gg = g / 255;
+  const bb = b / 255;
+  const max = Math.max(rr, gg, bb);
+  const min = Math.min(rr, gg, bb);
+  const d = max - min;
+
+  let h = 0;
+  if (d !== 0) {
+    if (max === rr) h = ((gg - bb) / d) % 6;
+    else if (max === gg) h = (bb - rr) / d + 2;
+    else h = (rr - gg) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  return { h, s: s * 100, l: l * 100 };
+}
+
+function averageHue(h1, h2) {
+  const a1 = (h1 * Math.PI) / 180;
+  const a2 = (h2 * Math.PI) / 180;
+  const x = Math.cos(a1) + Math.cos(a2);
+  const y = Math.sin(a1) + Math.sin(a2);
+  const a = Math.atan2(y, x);
+  let deg = (a * 180) / Math.PI;
+  if (deg < 0) deg += 360;
+  return deg;
+}
+
+let bubbleHueSplitA = 210;
+let bubbleHueSplitB = 330;
+
+function updateBubbleSplitPalette() {
+  try {
+    const style = getComputedStyle(document.documentElement);
+    const c2 = style.getPropertyValue("--accent-2").trim();
+    const c3 = style.getPropertyValue("--accent-3").trim();
+    const rgb2 = parseCssColorToRgb(c2);
+    const rgb3 = parseCssColorToRgb(c3);
+    if (!rgb2 || !rgb3) return;
+    const h2 = rgbToHsl(rgb2).h;
+    const h3 = rgbToHsl(rgb3).h;
+    const base = averageHue(h2, h3);
+    bubbleHueSplitA = (base + 150) % 360;
+    bubbleHueSplitB = (base + 210) % 360;
+
+    // Refresh existing bubbles so palette changes are immediate
+    for (let i = 0; i < bubbles.length; i++) {
+      bubbles[i].hue =
+        (Math.random() < 0.5 ? bubbleHueSplitA : bubbleHueSplitB) +
+        rand(-12, 12);
+    }
+  } catch (_) {}
+}
+
 function makeBubble(x, y, burst = false) {
   const r = burst ? rand(10, 20) : rand(6, 18);
   return {
@@ -547,14 +653,17 @@ function makeBubble(x, y, burst = false) {
     vy: burst ? -rand(1.0, 2.2) : -rand(0.25, 1.15),
     vx: burst ? rand(-1.0, 1.0) : rand(-0.4, 0.4),
     alpha: burst ? rand(0.7, 1) : rand(0.35, 0.85),
-    hue: rand(180, 330),
+    // Split-complementary hues derived from the current background
+    hue:
+      (Math.random() < 0.5 ? bubbleHueSplitA : bubbleHueSplitB) + rand(-12, 12),
   };
 }
 
 function drawBubble(b) {
   const grd = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r);
-  grd.addColorStop(0, `hsla(${b.hue}, 80%, 70%, ${b.alpha})`);
-  grd.addColorStop(1, `hsla(${b.hue}, 80%, 60%, ${b.alpha * 0.35})`);
+  // Split-complementary bubbles against the BG
+  grd.addColorStop(0, `hsla(${b.hue}, 58%, 76%, ${b.alpha})`);
+  grd.addColorStop(1, `hsla(${b.hue}, 58%, 62%, ${b.alpha * 0.35})`);
   ctx.fillStyle = grd;
   ctx.beginPath();
   ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
@@ -564,24 +673,22 @@ function drawBubble(b) {
 function animate() {
   ctx.clearRect(0, 0, cw, ch);
   // bubbles
-  if (!onEndScreen) {
-    for (let i = 0; i < bubbles.length; i++) {
-      const b = bubbles[i];
-      if (pointerX !== null) {
-        const dx = pointerX - b.x;
-        const dy = pointerY - b.y;
-        const dist = Math.hypot(dx, dy) + 0.001;
-        const force = Math.min(turboMode ? 0.18 : 0.12, 18 / dist);
-        b.vx += (dx / dist) * force * 0.15;
-        b.vy += (dy / dist) * force * 0.08;
-      }
-      b.y += b.vy;
-      b.x += b.vx;
-      b.alpha *= 0.9995;
-      drawBubble(b);
-      if (b.y < -40 || b.x < -40 || b.x > cw + 40 || b.alpha < 0.08) {
-        bubbles[i] = makeBubble();
-      }
+  for (let i = 0; i < bubbles.length; i++) {
+    const b = bubbles[i];
+    if (pointerX !== null) {
+      const dx = pointerX - b.x;
+      const dy = pointerY - b.y;
+      const dist = Math.hypot(dx, dy) + 0.001;
+      const force = Math.min(turboMode ? 0.18 : 0.12, 18 / dist);
+      b.vx += (dx / dist) * force * 0.15;
+      b.vy += (dy / dist) * force * 0.08;
+    }
+    b.y += b.vy;
+    b.x += b.vx;
+    b.alpha *= 0.9995;
+    drawBubble(b);
+    if (b.y < -40 || b.x < -40 || b.x > cw + 40 || b.alpha < 0.08) {
+      bubbles[i] = makeBubble();
     }
   }
   // confetti
@@ -622,9 +729,29 @@ function animate() {
   // hearts
   for (let i = hearts.length - 1; i >= 0; i--) {
     const h = hearts[i];
+    // Legacy: if any hearts are still marked as tornado, convert them into rain.
+    if (h.tornado) {
+      h.tornado = false;
+      h.vx = rand(-0.4, 0.4);
+      h.vy = rand(1.0, 2.4);
+      h.windSeed = Math.random() * 1000;
+      h.terminalVy = rand(3.6, 5.4);
+    }
+
+    // Heart rain physics: gravity + wind + terminal velocity.
+    const t = performance.now() * 0.001;
+    const windSeed = h.windSeed ?? 0;
+    // Two blended sine waves gives “gusty” wind without heavy math.
+    const wind =
+      (Math.sin(t * 0.7 + windSeed) * 0.7 +
+        Math.sin(t * 1.35 + windSeed * 0.33) * 0.3) *
+      0.35;
+    h.vx += (wind - h.vx) * 0.02;
+    h.vy += 0.03;
+    const terminalVy = h.terminalVy ?? 4.8;
+    if (h.vy > terminalVy) h.vy = terminalVy;
     h.x += h.vx;
     h.y += h.vy;
-    h.vy += 0.01;
     drawHeart(h);
     // Don't fade out hearts; only remove once they leave the screen
     if (h.y > ch + 80 || h.x < -120 || h.x > cw + 120) hearts.splice(i, 1);
@@ -836,8 +963,11 @@ function startHeartRain(duration = 3000) {
       hearts.push({
         x,
         y: -20,
-        vx: rand(-0.4, 0.4),
-        vy: rand(1.0, 2.4),
+        // Start slightly different per drop so it feels like real rain
+        vx: rand(-0.2, 0.2),
+        vy: rand(0.8, 1.8),
+        windSeed: Math.random() * 1000,
+        terminalVy: rand(3.6, 5.4),
         size,
         alpha: rand(0.8, 1),
         hue: rand(330, 360),
@@ -854,6 +984,11 @@ function stopHeartRain() {
     clearTimeout(heartRainTimer);
     heartRainTimer = null;
   }
+}
+
+function startHeartTornado(duration = Infinity) {
+  // Kept for backwards compatibility: tornado effect was replaced with rain.
+  startHeartRain(duration);
 }
 
 // makeFirework/drawFirework removed
@@ -1108,6 +1243,7 @@ function applyPalette(p) {
   docEl.style.setProperty("--accent", p.accent);
   docEl.style.setProperty("--accent-2", p.accent2);
   docEl.style.setProperty("--accent-3", p.accent3);
+  updateBubbleSplitPalette();
 }
 applyPalette(palettes[paletteIndex]);
 function cyclePalette() {
