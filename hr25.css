@@ -767,13 +767,22 @@ ul {
   border-radius: 38px;
   pointer-events: none;
   z-index: 0;
-  background: radial-gradient(
-    160% 140% at 30% 20%,
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0.06)
-  );
-  border: 2px solid rgba(255, 255, 255, 0.26);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0.1) 55%,
+      rgba(255, 255, 255, 0.14) 100%
+    ),
+    radial-gradient(
+      160% 140% at 30% 20%,
+      rgba(255, 255, 255, 0.58),
+      rgba(255, 255, 255, 0.34)
+    );
+  border: 2px solid rgba(255, 255, 255, 0.72);
   box-shadow: 0 16px 46px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(26px) saturate(1.4) contrast(1.08);
+  -webkit-backdrop-filter: blur(26px) saturate(1.4) contrast(1.08);
   will-change: transform;
 }
 
