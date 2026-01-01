@@ -7,6 +7,15 @@ const slideCounterEl = document.getElementById("slideCounter");
 const slideCounterFillEl = slideCounterEl
   ? slideCounterEl.querySelector(".slide-counter__fill")
   : null;
+const slideCounterKirbyEl = slideCounterEl
+  ? slideCounterEl.querySelector(".slide-counter__kirby")
+  : null;
+
+const KIRBY_GIF_DEFAULT =
+  "https://media.tenor.com/f5mFRebd1WwAAAAj/kirby-running.gif";
+const KIRBY_GIF_FINAL =
+  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZWozc2hleWJhMzl4b2NydzByNmVqenNxMW9qaGFxaWgwZWxrc2s5MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/Aw0crCbypOmRVPKUlr/giphy.gif";
+
 function updateSlideCounter() {
   if (!slideCounterEl) return;
   const total = slides ? slides.length : 0;
@@ -18,6 +27,23 @@ function updateSlideCounter() {
   const pct = total > 0 ? (current / total) * 100 : 0;
   if (slideCounterFillEl) {
     slideCounterFillEl.style.width = `${pct}%`;
+  }
+
+  // Move Kirby along the bar (RTL: right -> left). Keep within rounded ends.
+  const kirbyPct = Math.max(3, Math.min(97, 100 - pct));
+  try {
+    slideCounterEl.style.setProperty("--kirby-x", `${kirbyPct}%`);
+  } catch (_) {}
+
+  // Swap Kirby on the final slide.
+  if (slideCounterKirbyEl) {
+    const isFinal = current >= total;
+    slideCounterKirbyEl.classList.toggle("is-final", isFinal);
+
+    const desiredSrc = isFinal ? KIRBY_GIF_FINAL : KIRBY_GIF_DEFAULT;
+    if (slideCounterKirbyEl.getAttribute("src") !== desiredSrc) {
+      slideCounterKirbyEl.setAttribute("src", desiredSrc);
+    }
   }
 }
 

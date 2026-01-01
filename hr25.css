@@ -118,7 +118,24 @@ body {
   height: 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.16);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+}
+
+.slide-counter__kirby {
+  position: absolute;
+  left: var(--kirby-x, 3%);
+  top: 50%;
+  width: 20px;
+  height: auto;
+  transform: translate(-50%, -72%) scaleX(-1);
+  pointer-events: none;
+  user-select: none;
+}
+
+.slide-counter__kirby.is-final {
+  width: 40px;
+  transform: translate(-50%, -78%) scaleX(-1);
 }
 
 .slide-counter__fill {
