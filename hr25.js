@@ -3,6 +3,25 @@ let index = 0;
 let prevIndex = 0;
 let onEndScreen = false;
 
+function getHoldRequiredMsForSlide(slideEl) {
+  // 3s for the first 3 slides (tutorial).
+  // Middle slides: < 1s.
+  // End slides (last 2): back to 3s.
+  try {
+    const total = slides ? slides.length : 0;
+    const slideIndex = slides
+      ? Array.prototype.indexOf.call(slides, slideEl)
+      : -1;
+
+    if (slideIndex >= 0) {
+      if (slideIndex <= 2) return 2900;
+      if (total > 0 && slideIndex >= total - 2) return 2900;
+      return 700;
+    }
+  } catch (_) {}
+  return 2900;
+}
+
 const slideCounterEl = document.getElementById("slideCounter");
 const slideCounterFillEl = slideCounterEl
   ? slideCounterEl.querySelector(".slide-counter__fill")
@@ -15,6 +34,136 @@ const KIRBY_GIF_DEFAULT =
   "https://media.tenor.com/f5mFRebd1WwAAAAj/kirby-running.gif";
 const KIRBY_GIF_FINAL =
   "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZWozc2hleWJhMzl4b2NydzByNmVqenNxMW9qaGFxaWgwZWxrc2s5MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/Aw0crCbypOmRVPKUlr/giphy.gif";
+
+// Best-effort preloading (doesn't autoplay; just warms network/decoder caches).
+const PRELOAD_AUDIO_SRCS = [
+  "audio/boop.mp3",
+  "audio/boom.mp3",
+  "audio/next.mp3",
+  "audio/back.mp3",
+  "audio/heart.mp3",
+];
+const PRELOAD_IMAGE_SRCS = [
+  "shared image.jfif",
+  KIRBY_GIF_DEFAULT,
+  KIRBY_GIF_FINAL,
+];
+
+let preloadedAudios = [];
+let preloadedImages = [];
+
+function warmUpAssets() {
+  // Audio
+  try {
+    preloadedAudios = PRELOAD_AUDIO_SRCS.map((src) => {
+      const a = new Audio(src);
+      a.preload = "auto";
+      // Keep silent and avoid errors if play is blocked; we only load.
+      a.volume = 0;
+      try {
+        a.load();
+      } catch (_) {}
+      return a;
+    });
+  } catch (_) {}
+
+  // Also initialize pools so the first click doesn't allocate.
+  try {
+    if (typeof initBoop === "function") initBoop();
+  } catch (_) {}
+  try {
+    if (!sfxBoom) sfxBoom = createSfxPool("audio/boom.mp3", 3, 1);
+    if (!sfxBack) sfxBack = createSfxPool("audio/back.mp3", 3, 1);
+    if (!sfxHeart) sfxHeart = createSfxPool("audio/heart.mp3", 3, 1);
+    if (!sfxNext) sfxNext = createSfxPool("audio/next.mp3", 3, 1);
+  } catch (_) {}
+
+  // Images
+  try {
+    preloadedImages = PRELOAD_IMAGE_SRCS.map((src) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.loading = "eager";
+      img.src = src;
+      return img;
+    });
+  } catch (_) {}
+}
+
+// Run warm-up ASAP without blocking.
+try {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", warmUpAssets, { once: true });
+  } else {
+    warmUpAssets();
+  }
+} catch (_) {}
+
+function primeAudioElement(a) {
+  // Best-effort: silently play/pause to trigger decode after a user gesture.
+  try {
+    a.preload = "auto";
+    try {
+      a.load();
+    } catch (_) {}
+
+    const prevVol = a.volume;
+    const prevMuted = a.muted;
+    a.muted = true;
+    a.volume = 0;
+
+    const p = a.play();
+    if (p && typeof p.then === "function") {
+      p.then(() => {
+        try {
+          a.pause();
+          a.currentTime = 0;
+        } catch (_) {}
+        try {
+          a.muted = prevMuted;
+          a.volume = prevVol;
+        } catch (_) {}
+      }).catch(() => {
+        try {
+          a.muted = prevMuted;
+          a.volume = prevVol;
+        } catch (_) {}
+      });
+    }
+  } catch (_) {}
+}
+
+function warmUpAudioAfterFirstGesture() {
+  // Ensure pools exist
+  try {
+    if (typeof initBoop === "function") initBoop();
+  } catch (_) {}
+  try {
+    if (!sfxBoom) sfxBoom = createSfxPool("audio/boom.mp3", 3, 1);
+    if (!sfxBack) sfxBack = createSfxPool("audio/back.mp3", 3, 1);
+    if (!sfxHeart) sfxHeart = createSfxPool("audio/heart.mp3", 3, 1);
+    if (!sfxNext) sfxNext = createSfxPool("audio/next.mp3", 3, 1);
+  } catch (_) {}
+
+  // Prime one instance per sound.
+  try {
+    if (boopPool && boopPool[0]) primeAudioElement(boopPool[0]);
+  } catch (_) {}
+  try {
+    if (sfxBoom && typeof sfxBoom.prime === "function") sfxBoom.prime();
+    if (sfxBack && typeof sfxBack.prime === "function") sfxBack.prime();
+    if (sfxHeart && typeof sfxHeart.prime === "function") sfxHeart.prime();
+    if (sfxNext && typeof sfxNext.prime === "function") sfxNext.prime();
+  } catch (_) {}
+}
+
+// One-time gesture warmup (helps when <link rel="preload"> is ignored).
+try {
+  const once = { once: true, passive: true, capture: true };
+  document.addEventListener("pointerdown", warmUpAudioAfterFirstGesture, once);
+  document.addEventListener("touchstart", warmUpAudioAfterFirstGesture, once);
+  document.addEventListener("keydown", warmUpAudioAfterFirstGesture, once);
+} catch (_) {}
 
 function updateSlideCounter() {
   if (!slideCounterEl) return;
@@ -278,7 +427,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
   let holdRAF = null;
   let holdIndicator = null;
   let milestone = 0; // for haptic progress pulses
-  const required = 3000; // 3 seconds
+  let required = 2900;
   let holdCompleted = false;
 
   // Managed boom instance for hold lifecycle
@@ -295,6 +444,12 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       const a = new Audio("audio/boom.mp3");
       a.preload = "auto";
       a.volume = 1;
+      // Sync boom with hold duration: shorter holds => faster sound.
+      // Clamp to keep it from sounding too chipmunky.
+      try {
+        const rate = Math.max(1, Math.min(2.75, 2900 / (required || 2900)));
+        a.playbackRate = rate;
+      } catch (_) {}
       a.currentTime = 0;
       a.play().catch(() => {});
       a.addEventListener(
@@ -434,6 +589,12 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
 
   btn.addEventListener("pointerdown", (e) => {
     addRipple(e);
+    try {
+      required = getHoldRequiredMsForSlide(btn.closest(".slide"));
+    } catch (_) {
+      required = 2900;
+    }
+    milestone = 0;
     // Start the managed boom when hold begins
     holdCompleted = false;
     startHoldBoom();
@@ -1038,7 +1199,7 @@ function drawHeart(h) {
 let heartRainTimer = null;
 let heartRainActive = false;
 
-function startHeartRain(duration = 3000) {
+function startHeartRain(duration = 2900) {
   stopHeartRain();
   heartRainActive = true;
 
@@ -1575,6 +1736,9 @@ function initBoop() {
     const a = new Audio(boopSrc);
     a.preload = "auto";
     a.volume = 0.9;
+    try {
+      a.load();
+    } catch (_) {}
     boopPool.push(a);
   }
 }
@@ -1618,6 +1782,9 @@ function createSfxPool(src, size = 4, volume = 1) {
     const a = new Audio(src);
     a.preload = "auto";
     a.volume = volume;
+    try {
+      a.load();
+    } catch (_) {}
     pool.push(a);
   }
   let idx = 0;
@@ -1629,6 +1796,13 @@ function createSfxPool(src, size = 4, volume = 1) {
         a.play().catch(() => {});
       } catch (_) {}
     },
+    prime() {
+      try {
+        const a = pool[0];
+        if (!a) return;
+        primeAudioElement(a);
+      } catch (_) {}
+    },
   };
 }
 
@@ -1636,11 +1810,19 @@ let sfxBoom = null;
 let sfxBack = null;
 let sfxHeart = null;
 let sfxNext = null;
+
+// Limit nav SFX so they don't play forever.
+// "First couple times" => 2 times per direction, per page load.
+const NAV_SFX_PLAY_LIMIT = 2;
+let nextSfxPlaysRemaining = NAV_SFX_PLAY_LIMIT;
+let backSfxPlaysRemaining = NAV_SFX_PLAY_LIMIT;
 function playBoomSFX() {
   if (!sfxBoom) sfxBoom = createSfxPool("audio/boom.mp3", 3, 1);
   sfxBoom.play();
 }
 function playBackSFX() {
+  if (backSfxPlaysRemaining <= 0) return;
+  backSfxPlaysRemaining--;
   if (!sfxBack) sfxBack = createSfxPool("audio/back.mp3", 3, 1);
   sfxBack.play();
 }
@@ -1649,6 +1831,8 @@ function playHeartSFX() {
   sfxHeart.play();
 }
 function playNextSFX() {
+  if (nextSfxPlaysRemaining <= 0) return;
+  nextSfxPlaysRemaining--;
   if (!sfxNext) sfxNext = createSfxPool("audio/next.mp3", 3, 1);
   sfxNext.play();
 }
