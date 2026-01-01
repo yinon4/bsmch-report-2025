@@ -163,7 +163,7 @@ body {
 }
 
 .photo-caption {
-  margin: 10px auto 0;
+  margin: clamp(16px, 3vw, 30px) auto 0;
   padding: 0;
   border-radius: 0;
   background: none;
@@ -171,7 +171,7 @@ body {
   -webkit-backdrop-filter: none;
   border: none;
   font-weight: 800;
-  font-size: clamp(0.95rem, 2.4vw, 1.2rem);
+  font-size: clamp(0.62rem, 1.6vw, 0.9rem);
   text-align: center;
   opacity: 0.95;
 }
@@ -480,6 +480,13 @@ ul {
   color: var(--accent-3);
   font-weight: bold;
   animation: sway 3.5s ease-in-out infinite alternate;
+}
+
+/* End slide: keep "❤️ באהבה, צוות פיתוח ❤️" on a single line */
+.love-line {
+  display: inline-block;
+  max-width: 95vw;
+  white-space: nowrap;
 }
 
 .navigation {
@@ -1050,6 +1057,10 @@ body.hold-shake #bubbleCanvas {
     perspective-origin: 50% 50%;
   }
 
+  .slide-counter {
+    font-size: clamp(1.05rem, 3.4vw, 1.35rem);
+  }
+
   .slide {
     padding: 18px;
     transform-style: preserve-3d;
@@ -1063,7 +1074,7 @@ body.hold-shake #bubbleCanvas {
   }
 
   h1 {
-    font-size: clamp(2rem, 8vw, 3.5rem);
+    font-size: clamp(2.7rem, 10vw, 4.5rem);
     margin: 40px 0 8px 0;
     transform: translate3d(0, 0, 20px) rotateX(1deg);
     backface-visibility: hidden;
@@ -1074,25 +1085,29 @@ body.hold-shake #bubbleCanvas {
     transform: translate3d(0, 0, 12px) rotateX(0.5deg);
     backface-visibility: hidden;
     will-change: transform;
-    font-size: clamp(1.6rem, 6vw, 2.5rem);
+    font-size: clamp(2.1rem, 7.2vw, 3.2rem);
+  }
+
+  .love-line {
+    font-size: clamp(1.6rem, 6vw, 2.4rem);
   }
 
   p,
   li {
-    font-size: clamp(1.2rem, 5vw, 1.8rem);
+    font-size: clamp(1.7rem, 6.2vw, 2.6rem);
   }
 
   .hint {
     position: static;
     margin-top: 8px;
-    font-size: 0.85rem;
+    font-size: clamp(1.05rem, 3.8vw, 1.45rem);
     text-align: center;
   }
 
   .footer {
     position: static;
     margin-top: 16px;
-    font-size: 0.8rem;
+    font-size: clamp(1rem, 3.6vw, 1.25rem);
     opacity: 0.7;
   }
 
@@ -1111,7 +1126,7 @@ body.hold-shake #bubbleCanvas {
     min-width: 0;
     min-height: 74px;
     padding: 0 clamp(16px, 3.6vw, 28px);
-    font-size: clamp(1.15rem, 4.2vw, 1.9rem);
+    font-size: clamp(1.4rem, 4.8vw, 2.25rem);
     border-radius: 30px;
     border-width: 2px;
   }
@@ -1136,7 +1151,8 @@ body.hold-shake #bubbleCanvas {
     width: calc(100% - 32px);
     max-width: 340px;
     padding: 20px 32px;
-    font-size: clamp(4rem, 16vw, 8rem);
+    font-size: clamp(4.6rem, 18vw, 9.2rem);
+    line-height: 1.05;
     color: #fff;
     margin: 16px 16px;
     border-width: 3px;
@@ -1175,7 +1191,8 @@ body.hold-shake #bubbleCanvas {
   @media (max-width: 400px) {
     .reveal-btn {
       padding: 16px 24px;
-      font-size: clamp(1.4rem, 5vw, 1.8rem);
+      font-size: clamp(4rem, 18vw, 8rem);
+      line-height: 1.05;
     }
 
     .nav-btn {
@@ -1183,7 +1200,7 @@ body.hold-shake #bubbleCanvas {
       min-height: 66px;
       padding: 0 18px;
       /* Still allow text to grow, but keep the button box stable */
-      font-size: clamp(1.05rem, 5vw, 1.7rem);
+      font-size: clamp(1.3rem, 5.2vw, 2.05rem);
     }
 
     .navigation .nav-btn {
@@ -1192,7 +1209,7 @@ body.hold-shake #bubbleCanvas {
     }
 
     h1 {
-      font-size: clamp(1.8rem, 7vw, 2.8rem);
+      font-size: clamp(2.4rem, 9vw, 3.8rem);
       margin: 30px 0 8px 0;
     }
   }

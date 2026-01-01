@@ -104,7 +104,7 @@ function wireNavButtons(selector, { go, bubbleCount, confettiCount }) {
   document.querySelectorAll(selector).forEach((btn) => {
     btn.addEventListener("click", (e) => {
       addRipple(e);
-      playBoop();
+      playBoopSometimes();
       // vibrate(8);
       go();
 
@@ -1055,7 +1055,7 @@ document.addEventListener(
     const isNav = e.target.closest(".nav-btn");
     // Play boop on presses, excluding the big reveal button and nav buttons (which have their own sounds)
     if (!isReveal && !isNav) {
-      playBoop();
+      playBoopSometimes();
     }
     if (!isButton) playPop(1.05);
     // Ensure audio context is active after first interaction
@@ -1519,6 +1519,16 @@ function playBoop() {
   } catch (_) {}
 }
 
+// Limit how often the boop plays (to reduce "every click" fatigue).
+// Set to 2 for every other click, 3 for once every 3 clicks, etc.
+const BOOP_EVERY_NTH_CLICK = 5;
+let boopClickCount = 0;
+function playBoopSometimes() {
+  boopClickCount++;
+  if (boopClickCount % BOOP_EVERY_NTH_CLICK !== 0) return;
+  playBoop();
+}
+
 // Additional SFX pools for boom/back/heart
 function createSfxPool(src, size = 4, volume = 1) {
   const pool = [];
@@ -1902,7 +1912,11 @@ resizeCanvas();
 
 // Device orientation for 3D tilt on mobile - optimized with smoothing
 // Calibrated: treats the *current* phone pose as "straight" and only tilts on change.
-if (typeof isMobile !== "undefined" && isMobile && window.DeviceOrientationEvent) {
+if (
+  typeof isMobile !== "undefined" &&
+  isMobile &&
+  window.DeviceOrientationEvent
+) {
   let currentRotateX = 0;
   let currentRotateY = 0;
   let targetRotateX = 0;
