@@ -1901,12 +1901,21 @@ window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
 // Device orientation for 3D tilt on mobile - optimized with smoothing
-if (window.DeviceOrientationEvent) {
+// Calibrated: treats the *current* phone pose as "straight" and only tilts on change.
+if (typeof isMobile !== "undefined" && isMobile && window.DeviceOrientationEvent) {
   let currentRotateX = 0;
   let currentRotateY = 0;
   let targetRotateX = 0;
   let targetRotateY = 0;
   let orientationRAF = null;
+
+  let baselineSet = false;
+  let baselineBeta = 0;
+  let baselineGamma = 0;
+
+  let orientationListenerAttached = false;
+
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
   // Smoothing function for natural movement
   function smoothOrientation() {
@@ -1924,15 +1933,30 @@ if (window.DeviceOrientationEvent) {
     orientationRAF = requestAnimationFrame(smoothOrientation);
   }
 
-  window.addEventListener("deviceorientation", function (event) {
+  function handleDeviceOrientation(event) {
     const beta = event.beta; // front-to-back tilt (-180 to 180)
     const gamma = event.gamma; // left-to-right tilt (-90 to 90)
 
     if (beta !== null && gamma !== null) {
+      // First valid reading becomes the neutral "straight" baseline.
+      if (!baselineSet) {
+        baselineBeta = beta;
+        baselineGamma = gamma;
+        baselineSet = true;
+        // Ensure no sudden jump on calibration
+        currentRotateX = 0;
+        currentRotateY = 0;
+        targetRotateX = 0;
+        targetRotateY = 0;
+      }
+
+      const deltaBeta = beta - baselineBeta;
+      const deltaGamma = gamma - baselineGamma;
+
       // Dampen the effect for mobile - less intense than original
       // Clamp values to prevent extreme rotations
-      const clampedBeta = Math.max(-60, Math.min(60, beta));
-      const clampedGamma = Math.max(-45, Math.min(45, gamma));
+      const clampedBeta = clamp(deltaBeta, -60, 60);
+      const clampedGamma = clamp(deltaGamma, -45, 45);
 
       targetRotateX = clampedBeta * 0.15;
       targetRotateY = clampedGamma * 0.2;
@@ -1942,6 +1966,39 @@ if (window.DeviceOrientationEvent) {
         smoothOrientation();
       }
     }
+  }
+
+  async function attachDeviceOrientationListener() {
+    if (orientationListenerAttached) return;
+    orientationListenerAttached = true;
+
+    // iOS 13+ requires a user gesture to grant permission.
+    try {
+      const maybeRequest = window.DeviceOrientationEvent.requestPermission;
+      if (typeof maybeRequest === "function") {
+        const result = await maybeRequest.call(window.DeviceOrientationEvent);
+        if (result !== "granted") return;
+      }
+    } catch (_) {
+      // If permission fails, just don't attach.
+      return;
+    }
+
+    window.addEventListener("deviceorientation", handleDeviceOrientation, {
+      passive: true,
+    });
+  }
+
+  // Try to attach immediately (non-iOS), otherwise attach on first user gesture.
+  attachDeviceOrientationListener();
+  document.addEventListener("pointerdown", attachDeviceOrientationListener, {
+    once: true,
+    passive: true,
+  });
+
+  // If the user rotates the screen (portrait/landscape), re-calibrate.
+  window.addEventListener("orientationchange", () => {
+    baselineSet = false;
   });
 
   // Clean up on page unload
@@ -1949,6 +2006,10 @@ if (window.DeviceOrientationEvent) {
     if (orientationRAF) {
       cancelAnimationFrame(orientationRAF);
     }
+
+    try {
+      window.removeEventListener("deviceorientation", handleDeviceOrientation);
+    } catch (_) {}
   });
 }
 
