@@ -44,8 +44,14 @@ function updateActiveSlideLongness() {
     const candidates = content.querySelectorAll("p, li");
     for (const el of candidates) {
       const styles = window.getComputedStyle(el);
-      const lineHeight = parseFloat(styles.lineHeight);
-      if (!Number.isFinite(lineHeight) || lineHeight <= 0) continue;
+      let lineHeight = parseFloat(styles.lineHeight);
+      if (!Number.isFinite(lineHeight) || lineHeight <= 0) {
+        // Many browsers report computed line-height as "normal".
+        // Approximate it from font-size so wrapping detection still works.
+        const fontSize = parseFloat(styles.fontSize);
+        if (!Number.isFinite(fontSize) || fontSize <= 0) continue;
+        lineHeight = fontSize * 1.25;
+      }
       const h = el.getBoundingClientRect().height;
       if (h > lineHeight * 1.35) wrappedCount++;
       if (wrappedCount >= 3) break;
