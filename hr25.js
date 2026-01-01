@@ -7,9 +7,6 @@ const slideCounterEl = document.getElementById("slideCounter");
 const slideCounterFillEl = slideCounterEl
   ? slideCounterEl.querySelector(".slide-counter__fill")
   : null;
-const slideCounterTextEl = slideCounterEl
-  ? slideCounterEl.querySelector(".slide-counter__text")
-  : null;
 function updateSlideCounter() {
   if (!slideCounterEl) return;
   const total = slides ? slides.length : 0;
@@ -22,12 +19,10 @@ function updateSlideCounter() {
   if (slideCounterFillEl) {
     slideCounterFillEl.style.width = `${pct}%`;
   }
-  if (slideCounterTextEl) {
-    slideCounterTextEl.textContent = `${current}/${total}`;
-  }
 }
 
 function showSlide(i) {
+  if (!slides || !slides[i]) return;
   const direction = i > prevIndex ? "right" : "left";
   const leaving = slides[prevIndex];
   if (leaving) {
@@ -77,7 +72,7 @@ updateSlideCounter();
 function nextSlide() {
   if (index < slides.length - 1) {
     // Next sound on navigating forward (SFX)
-    playNextSFX && playNextSFX();
+    playNextSFX();
     index++;
     showSlide(index);
   }
@@ -95,61 +90,50 @@ function prevSlide() {
 document.addEventListener("keydown", (e) => {
   // RTL: Right arrow navigates backward, Left arrow forward
   if (e.key === "ArrowRight") {
+    e.preventDefault();
     prevSlide();
   }
   if (e.key === "ArrowLeft" || e.key === " ") {
+    e.preventDefault();
     nextSlide();
   }
 });
 
 // Add button event listeners
-document.querySelectorAll(".prev-btn").forEach((btn) => {
-  btn.addEventListener("click", (e) => {
-    addRipple(e);
-    playBoop();
-    // vibrate(8);
-    prevSlide();
-    // Add bubbly click effects
-    const rect = btn.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    // Spawn bubbles around the button
-    for (let i = 0; i < 4; i++) {
-      bubbles.push(
-        makeBubble(centerX + rand(-30, 30), centerY + rand(-30, 30), true)
-      );
-    }
-    // Small confetti burst
-    spawnConfetti(centerX, centerY, 8);
-    // Darken background
-    triggerDarken();
+function wireNavButtons(selector, { go, bubbleCount, confettiCount }) {
+  document.querySelectorAll(selector).forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      addRipple(e);
+      playBoop();
+      // vibrate(8);
+      go();
+
+      const rect = btn.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      for (let i = 0; i < bubbleCount; i++) {
+        bubbles.push(
+          makeBubble(centerX + rand(-30, 30), centerY + rand(-30, 30), true)
+        );
+      }
+      spawnConfetti(centerX, centerY, confettiCount);
+      triggerDarken();
+    });
   });
+}
+
+wireNavButtons(".prev-btn", {
+  go: prevSlide,
+  bubbleCount: 4,
+  confettiCount: 8,
 });
-document.querySelectorAll(".next-btn").forEach((btn) => {
-  btn.addEventListener("click", (e) => {
-    addRipple(e);
-    playBoop();
-    // vibrate(8);
-    nextSlide();
-    // Add bubbly click effects
-    const rect = btn.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    // Spawn bubbles around the button
-    for (let i = 0; i < 12; i++) {
-      bubbles.push(
-        makeBubble(centerX + rand(-30, 30), centerY + rand(-30, 30), true)
-      );
-    }
-    // Small confetti burst
-    spawnConfetti(centerX, centerY, 3);
-    // Darken background
-    triggerDarken();
-  });
+wireNavButtons(".next-btn", {
+  go: nextSlide,
+  bubbleCount: 12,
+  confettiCount: 3,
 });
 
 // Press-and-hold reveal buttons (3s) with progress ring and reveal effects
-let revealCounter = 0;
 function vibrate(pattern) {
   try {
     if (navigator && typeof navigator.vibrate === "function") {
@@ -157,7 +141,7 @@ function vibrate(pattern) {
     }
   } catch (_) {}
 }
-function triggerRevealForButton(btn, variant) {
+function triggerRevealForButton(btn) {
   const slide = btn.closest(".slide");
   const content = slide.querySelector(".content");
   if (content) {
@@ -207,13 +191,12 @@ function triggerRevealForButton(btn, variant) {
 }
 
 document.querySelectorAll(".reveal-btn").forEach((btn) => {
-  const variant = ["pop", "spark", "bell"][revealCounter++ % 3];
   let holding = false;
   let holdStart = 0;
   let holdRAF = null;
   let holdIndicator = null;
   let milestone = 0; // for haptic progress pulses
-  const required = 2900; // 0.5 seconds
+  const required = 3000; // 3 seconds
   let holdCompleted = false;
 
   // Managed boom instance for hold lifecycle
@@ -324,7 +307,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       holdCompleted = true;
       cleanupHold(true);
       vibrate([50, 100, 50, 100, 50]);
-      triggerRevealForButton(btn, variant);
+      triggerRevealForButton(btn);
       // Removed synthetic success chime; keep visual effects only
       // MASSIVE EXPLOSION EFFECT
       const rect = btn.getBoundingClientRect();

@@ -25,21 +25,6 @@ input[type="submit"],
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  /* Card grows from nothing with a slight overshoot */
-  @keyframes card-grow {
-    0% {
-      transform: translateY(0) scale(0.02);
-      opacity: 0;
-    }
-    55% {
-      transform: translateY(0) scale(1.08);
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-  }
   -webkit-touch-callout: none; /* Disable iOS text selection/Callout */
   -webkit-tap-highlight-color: transparent; /* Remove mobile tap highlight */
 }
@@ -147,9 +132,7 @@ body {
   );
 }
 
-.slide-counter__text {
-  text-align: center;
-}
+
 
 /* End slide picture placeholder */
 .photo-figure {
@@ -283,25 +266,6 @@ body {
   to {
     transform: translateX(40px);
     opacity: 0;
-  }
-}
-
-@keyframes wiggle {
-  0%,
-  100% {
-    transform: translateY(-6px) scale(1.08) rotate(0deg);
-  }
-
-  25% {
-    transform: translateY(-6px) scale(1.08) rotate(-3deg);
-  }
-
-  50% {
-    transform: translateY(-6px) scale(1.08) rotate(3deg);
-  }
-
-  75% {
-    transform: translateY(-6px) scale(1.08) rotate(-1deg);
   }
 }
 
@@ -514,16 +478,6 @@ ul {
   }
 }
 
-@keyframes floaty {
-  0% {
-    transform: translateY(0);
-  }
-
-  100% {
-    transform: translateY(-12px);
-  }
-}
-
 .highlight {
   color: var(--accent-3);
   font-weight: bold;
@@ -536,15 +490,6 @@ ul {
   justify-content: center;
   margin-top: 20px;
   flex-wrap: nowrap;
-}
-
-.controls {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  gap: 12px;
-  z-index: 120;
 }
 
 .nav-btn {
