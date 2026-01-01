@@ -489,6 +489,23 @@ ul {
   white-space: nowrap;
 }
 
+/* Slide 13 (Excellence): reduce ugly wrapping in list rows */
+.slide-excellence .content ul {
+  width: 100%;
+}
+
+.slide-excellence .content li {
+  /* display: flex; */
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.slide-excellence .content li b,
+.slide-excellence .content li .highlight {
+  white-space: nowrap;
+}
+
 .navigation {
   display: flex;
   gap: 18px;
@@ -1092,9 +1109,40 @@ body.hold-shake #bubbleCanvas {
     font-size: clamp(1.6rem, 6vw, 2.4rem);
   }
 
+  .slide-excellence .content li {
+    font-size: clamp(1.05rem, 4.2vw, 1.55rem);
+  }
+
   p,
   li {
     font-size: clamp(1.7rem, 6.2vw, 2.6rem);
+  }
+
+  /* If a slide has lots of content, shrink revealed text so it fits */
+  .slide.long .content p,
+  .slide.long .content li {
+    font-size: clamp(1.05rem, 4.5vw, 1.65rem);
+  }
+
+  .slide.long .content h2 {
+    font-size: clamp(1.35rem, 5.2vw, 2.05rem);
+  }
+
+  /* Very long: shrink more to avoid wrapping/overflow */
+  .slide.long2 .content p,
+  .slide.long2 .content li {
+    font-size: clamp(0.95rem, 4vw, 1.45rem);
+  }
+
+  .slide.long2 .content h2 {
+    font-size: clamp(1.2rem, 4.8vw, 1.85rem);
+  }
+
+  /* Give long slides a bit more usable width so lines wrap less */
+  .slide.long .content,
+  .slide.long2 .content {
+    width: calc(100% - 24px);
+    max-width: 520px;
   }
 
   .hint {

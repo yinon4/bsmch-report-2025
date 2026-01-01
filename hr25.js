@@ -21,6 +21,46 @@ function updateSlideCounter() {
   }
 }
 
+// Mark the active slide as "long" when revealed content would overflow the viewport.
+function updateActiveSlideLongness() {
+  const active = document.querySelector(".slide.active");
+  if (!active) return;
+  active.classList.remove("long", "long2");
+
+  const content = active.querySelector(".content");
+  if (!content || content.classList.contains("hidden")) return;
+
+  const rect = content.getBoundingClientRect();
+  const topLimit = 24;
+  const bottomLimit = window.innerHeight - 24;
+
+  const overflowTop = Math.max(0, topLimit - rect.top);
+  const overflowBottom = Math.max(0, rect.bottom - bottomLimit);
+  const overflowPx = overflowTop + overflowBottom;
+
+  // Detect "ugly wrapping": paragraphs/list items taking more than ~1.2 lines.
+  let wrappedCount = 0;
+  try {
+    const candidates = content.querySelectorAll("p, li");
+    for (const el of candidates) {
+      const styles = window.getComputedStyle(el);
+      const lineHeight = parseFloat(styles.lineHeight);
+      if (!Number.isFinite(lineHeight) || lineHeight <= 0) continue;
+      const h = el.getBoundingClientRect().height;
+      if (h > lineHeight * 1.35) wrappedCount++;
+      if (wrappedCount >= 3) break;
+    }
+  } catch (_) {}
+
+  const wouldOverflow = overflowPx > 0;
+  const looksWrapped = wrappedCount > 0;
+  if (!wouldOverflow && !looksWrapped) return;
+
+  // Two levels: long (mild) and long2 (more aggressive shrink)
+  const isVeryLong = overflowPx >= 120 || wrappedCount >= 3;
+  active.classList.add(isVeryLong ? "long2" : "long");
+}
+
 function showSlide(i) {
   if (!slides || !slides[i]) return;
   const direction = i > prevIndex ? "right" : "left";
@@ -40,7 +80,7 @@ function showSlide(i) {
     );
   }
   slides.forEach((s) =>
-    s.classList.remove("active", "enter-left", "enter-right")
+    s.classList.remove("active", "enter-left", "enter-right", "long", "long2")
   );
   slides[i].classList.add(
     "active",
@@ -57,6 +97,9 @@ function showSlide(i) {
   if (revealBtn) revealBtn.style.display = "block";
   prevIndex = i;
   updateSlideCounter();
+
+  // Clear any prior long-slide sizing when switching slides.
+  updateActiveSlideLongness();
 
   // Stop endless finale effects when leaving the end screens
   const endA = slides[slides.length - 1];
@@ -187,6 +230,13 @@ function triggerRevealForButton(btn) {
     // Removed synthetic audio cues (spark/bell/pop). Keep only MP3-based boom.
     vibrate([20, 50, 20]);
     btn.style.display = "none";
+
+    // After layout settles, decide if this slide needs smaller text.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        updateActiveSlideLongness();
+      });
+    });
   }
 }
 
@@ -1908,6 +1958,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("resize", resizeCanvas);
+window.addEventListener("resize", updateActiveSlideLongness);
 resizeCanvas();
 
 // Device orientation for 3D tilt on mobile - optimized with smoothing
