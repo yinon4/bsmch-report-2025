@@ -435,10 +435,7 @@ function vibrate(pattern) {
       const VIBRATE_MAX_MS = 1200;
 
       const clampMs = (ms) =>
-        Math.max(
-          0,
-          Math.min(VIBRATE_MAX_MS, Math.round(Math.max(0, ms || 0)))
-        );
+        Math.max(0, Math.min(VIBRATE_MAX_MS, Math.round(Math.max(0, ms || 0))));
 
       let scaled = pattern;
       if (Array.isArray(pattern)) {
@@ -919,8 +916,14 @@ function applyParticleCaps() {
   const confettiCapBase = isMobile ? 140 : 280;
   const sparklesCapBase = isMobile ? 120 : 240;
   const heartsCapBase = isMobile ? 120 : 220;
-  capArray(confetti, Math.max(20, Math.floor(confettiCapBase * particleQuality)));
-  capArray(sparkles, Math.max(20, Math.floor(sparklesCapBase * particleQuality)));
+  capArray(
+    confetti,
+    Math.max(20, Math.floor(confettiCapBase * particleQuality))
+  );
+  capArray(
+    sparkles,
+    Math.max(20, Math.floor(sparklesCapBase * particleQuality))
+  );
   capArray(hearts, Math.max(20, Math.floor(heartsCapBase * particleQuality)));
 }
 
@@ -941,13 +944,19 @@ function resizeCanvas() {
   // stars
   let starTarget = Math.max(6, Math.floor((cw * ch) / 140000));
   starTarget = Math.min(22, starTarget);
-  starTarget = Math.max(3, Math.floor(starTarget * (0.6 + 0.4 * particleQuality)));
+  starTarget = Math.max(
+    3,
+    Math.floor(starTarget * (0.6 + 0.4 * particleQuality))
+  );
   while (stars.length < starTarget) stars.push(makeStar());
   if (stars.length > starTarget) stars.length = starTarget;
   // snowflakes
   snowTarget = Math.max(10, Math.floor((cw * ch) / 90000));
   snowTarget = Math.min(36, snowTarget);
-  snowTarget = Math.max(6, Math.floor(snowTarget * (0.5 + 0.5 * particleQuality)));
+  snowTarget = Math.max(
+    6,
+    Math.floor(snowTarget * (0.5 + 0.5 * particleQuality))
+  );
   while (snowflakes.length < snowTarget) snowflakes.push(makeSnowflake());
   if (snowflakes.length > snowTarget) snowflakes.length = snowTarget;
 }
