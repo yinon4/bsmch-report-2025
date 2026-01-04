@@ -49,25 +49,31 @@ const PRELOAD_IMAGE_SRCS = [
   KIRBY_GIF_FINAL,
 ];
 
-let preloadedAudios = [];
+// Audio caching strategy:
+// Since HTML <link rel="preload"> handles preloading, we just use the original URLs.
+// Browsers should cache the preloaded audio, avoiding multiple downloads.
+const audioElementsBySrc = new Map(); // src -> Set<HTMLAudioElement>
+
+function registerAudioElForSrc(src, audioEl) {
+  try {
+    if (!src || !audioEl) return;
+    let set = audioElementsBySrc.get(src);
+    if (!set) {
+      set = new Set();
+      audioElementsBySrc.set(src, set);
+    }
+    set.add(audioEl);
+  } catch (_) {}
+}
+
+function getAudioPlayableSrc(src) {
+  return src;
+}
+
 let preloadedImages = [];
 
 function warmUpAssets() {
-  // Audio
-  try {
-    preloadedAudios = PRELOAD_AUDIO_SRCS.map((src) => {
-      const a = new Audio(src);
-      a.preload = "auto";
-      // Keep silent and avoid errors if play is blocked; we only load.
-      a.volume = 0;
-      try {
-        a.load();
-      } catch (_) {}
-      return a;
-    });
-  } catch (_) {}
-
-  // Also initialize pools so the first click doesn't allocate.
+  // Audio: HTML preload handles caching, so we just initialize pools.
   try {
     if (typeof initBoop === "function") initBoop();
   } catch (_) {}
@@ -524,33 +530,28 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
   let holdBoomAudio = null;
   function startHoldBoom() {
     try {
-      // If a previous instance is still referenced, stop it first
-      if (holdBoomAudio) {
+      const boomSrc = "audio/boom.mp3";
+      if (!holdBoomAudio) {
+        holdBoomAudio = new Audio(getAudioPlayableSrc(boomSrc));
+        registerAudioElForSrc(boomSrc, holdBoomAudio);
+        holdBoomAudio.preload = "auto";
+        holdBoomAudio.volume = 1;
+      } else {
         try {
           holdBoomAudio.pause();
         } catch (_) {}
-        holdBoomAudio = null;
       }
-      const a = new Audio("audio/boom.mp3");
-      a.preload = "auto";
-      a.volume = 1;
+
       // Sync boom with hold duration: shorter holds => faster sound.
       // Clamp to keep it from sounding too chipmunky.
       try {
         const rate = Math.max(1, Math.min(2.75, 2900 / (required || 2900)));
-        a.playbackRate = rate;
+        holdBoomAudio.playbackRate = rate;
       } catch (_) {}
-      a.currentTime = 0;
-      a.play().catch(() => {});
-      a.addEventListener(
-        "ended",
-        () => {
-          // Clear reference when it naturally finishes
-          if (holdBoomAudio === a) holdBoomAudio = null;
-        },
-        { once: true }
-      );
-      holdBoomAudio = a;
+      try {
+        holdBoomAudio.currentTime = 0;
+      } catch (_) {}
+      holdBoomAudio.play().catch(() => {});
     } catch (_) {}
   }
   function stopHoldBoom(reset = true) {
@@ -560,7 +561,6 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
           holdBoomAudio.pause();
           if (reset) holdBoomAudio.currentTime = 0;
         } catch (_) {}
-        holdBoomAudio = null;
       }
     } catch (_) {}
   }
@@ -1909,14 +1909,17 @@ let boopIndex = 0;
 function initBoop() {
   if (boopPool.length) return;
   for (let i = 0; i < 5; i++) {
-    const a = new Audio(boopSrc);
-    a.preload = "auto";
+    const a = new Audio(getAudioPlayableSrc(boopSrc));
+    registerAudioElForSrc(boopSrc, a);
+    // Avoid parallel downloads for pooled elements; we explicitly prime one instance.
+    a.preload = "none";
     a.volume = 0.9;
-    try {
-      a.load();
-    } catch (_) {}
     boopPool.push(a);
   }
+  // Prime only one instance to avoid triggering parallel downloads.
+  try {
+    if (boopPool[0]) primeAudioElement(boopPool[0]);
+  } catch (_) {}
 }
 function playBoop() {
   try {
@@ -1955,12 +1958,11 @@ function playBoopSometimes() {
 function createSfxPool(src, size = 4, volume = 1) {
   const pool = [];
   for (let i = 0; i < size; i++) {
-    const a = new Audio(src);
-    a.preload = "auto";
+    const a = new Audio(getAudioPlayableSrc(src));
+    registerAudioElForSrc(src, a);
+    // Avoid parallel downloads for pooled elements; we explicitly prime one instance.
+    a.preload = "none";
     a.volume = volume;
-    try {
-      a.load();
-    } catch (_) {}
     pool.push(a);
   }
   let idx = 0;
