@@ -1128,8 +1128,10 @@ let perfFastMs = 0;
 let perfDebug = false;
 try {
   const qs = new URLSearchParams(window.location.search);
-  perfDebug = qs.get("perfdebug") === "1" ||
-    (typeof localStorage !== "undefined" && localStorage.getItem("perfdebug") === "1");
+  perfDebug =
+    qs.get("perfdebug") === "1" ||
+    (typeof localStorage !== "undefined" &&
+      localStorage.getItem("perfdebug") === "1");
 } catch (_) {}
 let perfLastLoggedState = "";
 let perfLastLoggedQuality = particleQuality;
@@ -1157,9 +1159,7 @@ function setLiteMode(enable) {
 
   // Reduce render resolution in lite mode.
   try {
-    dpr = liteMode
-      ? 1
-      : dprBase;
+    dpr = liteMode ? 1 : dprBase;
   } catch (_) {
     dpr = liteMode ? 1 : dpr;
   }
@@ -1233,14 +1233,20 @@ function updateParticleQuality(nowTs) {
   const downRate = 0.25;
   const upRate = 0.08;
   const rate = desired < particleQuality ? downRate : upRate;
-  particleQuality = clamp01(particleQuality + (desired - particleQuality) * rate);
+  particleQuality = clamp01(
+    particleQuality + (desired - particleQuality) * rate
+  );
 
   // Snap very small values to 0 to truly remove everything.
   if (particleQuality < 0.03) particleQuality = 0;
 
   // Lite mode should be enabled only when sustained slow, disabled on sustained recovery.
-  const shouldLite = particleQuality <= 0.25 || perfSlowMs > 1100 || (isMobile && perfEmaMs > 60);
-  const shouldUnlite = particleQuality >= 0.6 && perfFastMs > 6500 && perfEmaMs < 30;
+  const shouldLite =
+    particleQuality <= 0.25 ||
+    perfSlowMs > 1100 ||
+    (isMobile && perfEmaMs > 60);
+  const shouldUnlite =
+    particleQuality >= 0.6 && perfFastMs > 6500 && perfEmaMs < 30;
 
   if (!liteMode && shouldLite) setLiteMode(true);
   if (liteMode && shouldUnlite) {
@@ -1293,10 +1299,14 @@ function updateParticleQuality(nowTs) {
         console.debug(
           "[perf]",
           state,
-          "emaMs=", Math.round(perfEmaMs),
-          "slowMs=", Math.round(perfSlowMs),
-          "fastMs=", Math.round(perfFastMs),
-          "particleQuality=", particleQuality
+          "emaMs=",
+          Math.round(perfEmaMs),
+          "slowMs=",
+          Math.round(perfSlowMs),
+          "fastMs=",
+          Math.round(perfFastMs),
+          "particleQuality=",
+          particleQuality
         );
       } catch (_) {}
     }
@@ -1353,10 +1363,7 @@ function resizeCanvas() {
   // stars
   let starTarget = Math.floor((cw * ch) / 140000);
   starTarget = Math.min(22, starTarget);
-  starTarget = Math.max(
-    0,
-    Math.floor(starTarget * particleQuality)
-  );
+  starTarget = Math.max(0, Math.floor(starTarget * particleQuality));
   if (liteMode) starTarget = Math.min(6, starTarget);
   while (stars.length < starTarget) stars.push(makeStar());
   if (stars.length > starTarget) stars.length = starTarget;
@@ -1841,7 +1848,10 @@ const pointerHandler = (clientX, clientY) => {
   pointerY = clientY;
   const now = performance.now();
   // Reduce mouse particles when the device is slow.
-  const spawnEveryMs = Math.max(40, Math.floor(40 / Math.max(0.12, particleQuality)));
+  const spawnEveryMs = Math.max(
+    40,
+    Math.floor(40 / Math.max(0.12, particleQuality))
+  );
   if (!onEndScreen && now - lastPointerSpawn > spawnEveryMs) {
     if (particleQuality > 0) {
       bubbles.push(makeBubble(clientX, clientY, true));
