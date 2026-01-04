@@ -100,36 +100,18 @@ try {
 } catch (_) {}
 
 function primeAudioElement(a) {
-  // Best-effort: silently play/pause to trigger decode after a user gesture.
+  // Best-effort: load only.
+  // Note: some browsers allow only one audible/play() per user gesture;
+  // doing a muted play() here can consume that allowance and prevent the
+  // first real click SFX from playing. So we avoid play() during warmup.
   try {
     a.preload = "auto";
     try {
       a.load();
     } catch (_) {}
-
-    const prevVol = a.volume;
-    const prevMuted = a.muted;
-    a.muted = true;
-    a.volume = 0;
-
-    const p = a.play();
-    if (p && typeof p.then === "function") {
-      p.then(() => {
-        try {
-          a.pause();
-          a.currentTime = 0;
-        } catch (_) {}
-        try {
-          a.muted = prevMuted;
-          a.volume = prevVol;
-        } catch (_) {}
-      }).catch(() => {
-        try {
-          a.muted = prevMuted;
-          a.volume = prevVol;
-        } catch (_) {}
-      });
-    }
+    try {
+      a.currentTime = 0;
+    } catch (_) {}
   } catch (_) {}
 }
 
@@ -1766,12 +1748,12 @@ function playBoop() {
 }
 
 // Limit how often the boop plays (to reduce "every click" fatigue).
-// Set to 2 for every other click, 3 for once every 3 clicks, etc.
-const BOOP_EVERY_NTH_CLICK = 5;
+// "once yes then twice no" => play 1 out of every 3 calls.
+const BOOP_EVERY_NTH_CLICK = 3;
 let boopClickCount = 0;
 function playBoopSometimes() {
   boopClickCount++;
-  if (boopClickCount % BOOP_EVERY_NTH_CLICK !== 0) return;
+  if (boopClickCount % BOOP_EVERY_NTH_CLICK !== 1) return;
   playBoop();
 }
 
@@ -1811,18 +1793,18 @@ let sfxBack = null;
 let sfxHeart = null;
 let sfxNext = null;
 
-// Limit nav SFX so they don't play forever.
-// "First couple times" => 2 times per direction, per page load.
-const NAV_SFX_PLAY_LIMIT = 2;
-let nextSfxPlaysRemaining = NAV_SFX_PLAY_LIMIT;
-let backSfxPlaysRemaining = NAV_SFX_PLAY_LIMIT;
+// Nav SFX pattern:
+// "once yes then twice no" => play 1 out of every 3 presses.
+const NAV_SFX_EVERY_N = 3;
+let nextSfxPressCount = 0;
+let backSfxPressCount = 0;
 function playBoomSFX() {
   if (!sfxBoom) sfxBoom = createSfxPool("audio/boom.mp3", 3, 1);
   sfxBoom.play();
 }
 function playBackSFX() {
-  if (backSfxPlaysRemaining <= 0) return;
-  backSfxPlaysRemaining--;
+  backSfxPressCount++;
+  if (backSfxPressCount % NAV_SFX_EVERY_N !== 1) return;
   if (!sfxBack) sfxBack = createSfxPool("audio/back.mp3", 3, 1);
   sfxBack.play();
 }
@@ -1831,8 +1813,8 @@ function playHeartSFX() {
   sfxHeart.play();
 }
 function playNextSFX() {
-  if (nextSfxPlaysRemaining <= 0) return;
-  nextSfxPlaysRemaining--;
+  nextSfxPressCount++;
+  if (nextSfxPressCount % NAV_SFX_EVERY_N !== 1) return;
   if (!sfxNext) sfxNext = createSfxPool("audio/next.mp3", 3, 1);
   sfxNext.play();
 }
