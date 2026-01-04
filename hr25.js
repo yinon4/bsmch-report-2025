@@ -301,10 +301,93 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     prevSlide();
   }
-  if (e.key === "ArrowLeft" || e.key === " ") {
+  if (e.key === "ArrowLeft") {
     e.preventDefault();
     nextSlide();
   }
+});
+
+// Spacebar: hold-to-reveal (like holding the "גלה" button).
+// If the current slide is already revealed (or has no reveal button), Space falls back to nextSlide().
+let spaceHolding = false;
+let spaceHoldBtn = null;
+function getActiveRevealButton() {
+  try {
+    const active = document.querySelector(".slide.active");
+    if (!active) return null;
+    const btn = active.querySelector(".reveal-btn");
+    if (!btn) return null;
+    // Only if the reveal button is currently visible
+    const isVisible = btn.offsetParent !== null && btn.style.display !== "none";
+    return isVisible ? btn : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== " ") return;
+  // Avoid auto-repeat re-triggering
+  if (e.repeat) {
+    e.preventDefault();
+    return;
+  }
+  e.preventDefault();
+
+  const btn = getActiveRevealButton();
+  if (!btn) {
+    nextSlide();
+    return;
+  }
+
+  // Simulate a pointer hold on the reveal button
+  try {
+    const r = btn.getBoundingClientRect();
+    const clientX = r.left + r.width / 2;
+    const clientY = r.top + r.height / 2;
+    spaceHolding = true;
+    spaceHoldBtn = btn;
+    btn.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        clientX,
+        clientY,
+        pointerId: 1,
+        pointerType: "mouse",
+        isPrimary: true,
+      })
+    );
+  } catch (_) {
+    // Fallback: if PointerEvent is unavailable, just do next-slide.
+    spaceHolding = false;
+    spaceHoldBtn = null;
+    nextSlide();
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  if (e.key !== " ") return;
+  e.preventDefault();
+  if (!spaceHolding || !spaceHoldBtn) return;
+  try {
+    const r = spaceHoldBtn.getBoundingClientRect();
+    const clientX = r.left + r.width / 2;
+    const clientY = r.top + r.height / 2;
+    spaceHoldBtn.dispatchEvent(
+      new PointerEvent("pointerup", {
+        bubbles: true,
+        cancelable: true,
+        clientX,
+        clientY,
+        pointerId: 1,
+        pointerType: "mouse",
+        isPrimary: true,
+      })
+    );
+  } catch (_) {}
+  spaceHolding = false;
+  spaceHoldBtn = null;
 });
 
 // Add button event listeners
@@ -345,7 +428,31 @@ wireNavButtons(".next-btn", {
 function vibrate(pattern) {
   try {
     if (navigator && typeof navigator.vibrate === "function") {
-      navigator.vibrate(pattern);
+      // Browsers don't expose vibration "strength" — only durations.
+      // Make it feel as strong as possible by increasing durations globally.
+      const VIBRATE_MULTIPLIER = 3;
+      const VIBRATE_MIN_MS = 35;
+      const VIBRATE_MAX_MS = 1200;
+
+      const clampMs = (ms) =>
+        Math.max(
+          0,
+          Math.min(VIBRATE_MAX_MS, Math.round(Math.max(0, ms || 0)))
+        );
+
+      let scaled = pattern;
+      if (Array.isArray(pattern)) {
+        scaled = pattern.map((ms) => {
+          const boosted = (Number(ms) || 0) * VIBRATE_MULTIPLIER;
+          if (boosted <= 0) return 0;
+          return clampMs(Math.max(VIBRATE_MIN_MS, boosted));
+        });
+      } else {
+        const boosted = (Number(pattern) || 0) * VIBRATE_MULTIPLIER;
+        scaled = boosted <= 0 ? 0 : clampMs(Math.max(VIBRATE_MIN_MS, boosted));
+      }
+
+      navigator.vibrate(scaled);
     }
   } catch (_) {}
 }
@@ -748,7 +855,74 @@ let lastClickTime = 0;
 let snowTarget = 30;
 
 // Adaptive quality + FPS tracking
-// Performance safeguards removed: no adaptive quality, caps, or frame skipping
+// If the device gets slow (low FPS / long frames), automatically reduce particles.
+let particleQuality = 1; // 1 = full, lower = fewer particles
+let perfEmaMs = 16.7;
+let perfLastTs = performance.now();
+let perfSlowMs = 0;
+let perfFastMs = 0;
+
+function updateParticleQuality(nowTs) {
+  const dt = Math.max(0, nowTs - perfLastTs);
+  perfLastTs = nowTs;
+  // Exponential moving average of frame time
+  perfEmaMs = perfEmaMs * 0.9 + dt * 0.1;
+
+  // Consider "slow" when frames are consistently > ~40ms (~25fps)
+  // Consider "fast" when consistently < ~24ms (~41fps)
+  if (perfEmaMs > 40) {
+    perfSlowMs += dt;
+    perfFastMs = 0;
+  } else if (perfEmaMs < 24) {
+    perfFastMs += dt;
+    perfSlowMs = 0;
+  } else {
+    perfSlowMs = 0;
+    perfFastMs = 0;
+  }
+
+  // Degrade quickly when slow; recover slowly when stable.
+  if (perfSlowMs > 900) {
+    particleQuality = isMobile ? 0.25 : 0.4;
+  }
+  if (perfSlowMs > 2400) {
+    particleQuality = isMobile ? 0.15 : 0.3;
+  }
+  if (perfFastMs > 4000) {
+    particleQuality = Math.min(1, particleQuality + 0.1);
+    perfFastMs = 0;
+  }
+}
+
+function scaledCount(n) {
+  const v = Math.round((Number(n) || 0) * particleQuality);
+  return Math.max(0, v);
+}
+
+function capArray(arr, cap) {
+  try {
+    if (!Array.isArray(arr)) return;
+    const c = Math.max(0, cap | 0);
+    if (c === 0) {
+      arr.length = 0;
+      return;
+    }
+    if (arr.length > c) {
+      // Drop oldest first to reduce work immediately
+      arr.splice(0, arr.length - c);
+    }
+  } catch (_) {}
+}
+
+function applyParticleCaps() {
+  // Keep caps conservative on mobile.
+  const confettiCapBase = isMobile ? 140 : 280;
+  const sparklesCapBase = isMobile ? 120 : 240;
+  const heartsCapBase = isMobile ? 120 : 220;
+  capArray(confetti, Math.max(20, Math.floor(confettiCapBase * particleQuality)));
+  capArray(sparkles, Math.max(20, Math.floor(sparklesCapBase * particleQuality)));
+  capArray(hearts, Math.max(20, Math.floor(heartsCapBase * particleQuality)));
+}
 
 function resizeCanvas() {
   cw = window.innerWidth;
@@ -761,17 +935,19 @@ function resizeCanvas() {
   // adjust bubble count based on area
   let base = Math.max(26, Math.floor((cw * ch) / 42000));
   if (turboMode) base *= 1.5;
-  const target = Math.min(90, Math.floor(base));
+  const target = Math.min(90, Math.floor(base * particleQuality));
   while (bubbles.length < target) bubbles.push(makeBubble());
   if (bubbles.length > target) bubbles.length = target;
   // stars
   let starTarget = Math.max(6, Math.floor((cw * ch) / 140000));
   starTarget = Math.min(22, starTarget);
+  starTarget = Math.max(3, Math.floor(starTarget * (0.6 + 0.4 * particleQuality)));
   while (stars.length < starTarget) stars.push(makeStar());
   if (stars.length > starTarget) stars.length = starTarget;
   // snowflakes
   snowTarget = Math.max(10, Math.floor((cw * ch) / 90000));
   snowTarget = Math.min(36, snowTarget);
+  snowTarget = Math.max(6, Math.floor(snowTarget * (0.5 + 0.5 * particleQuality)));
   while (snowflakes.length < snowTarget) snowflakes.push(makeSnowflake());
   if (snowflakes.length > snowTarget) snowflakes.length = snowTarget;
 }
@@ -913,6 +1089,8 @@ function drawBubble(b) {
 }
 
 function animate() {
+  updateParticleQuality(performance.now());
+  applyParticleCaps();
   ctx.clearRect(0, 0, cw, ch);
   // bubbles
   for (let i = 0; i < bubbles.length; i++) {
@@ -999,8 +1177,8 @@ function animate() {
     if (h.y > ch + 80 || h.x < -120 || h.x > cw + 120) hearts.splice(i, 1);
   }
   // random heart spawn
-  if (Math.random() < 0.005) {
-    for (let i = 0; i < rand(2, 4); i++) {
+  if (Math.random() < 0.005 * particleQuality * particleQuality) {
+    for (let i = 0; i < rand(2, 4) * particleQuality; i++) {
       hearts.push(makeHeart(rand(0, cw), rand(0, ch)));
     }
   }
@@ -1011,13 +1189,16 @@ function spawnBurst(x, y) {
   const rect = { left: 0, top: 0 };
   const gx = x - rect.left;
   const gy = y - rect.top;
-  for (let i = 0; i < 25; i++) {
+  const count = scaledCount(25);
+  for (let i = 0; i < count; i++) {
     bubbles.push(makeBubble(gx + rand(-20, 20), gy + rand(-10, 10), true));
   }
 }
 
 function spawnConfetti(x, y, count = 40) {
-  for (let i = 0; i < count; i++) {
+  const n = scaledCount(count);
+  if (n <= 0) return;
+  for (let i = 0; i < n; i++) {
     confetti.push(makeConfetti(x + rand(-16, 16), y + rand(-12, 12)));
   }
 }
