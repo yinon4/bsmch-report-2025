@@ -256,8 +256,10 @@ function showSlide(i) {
   const activeSlide = slides[i];
   const content = activeSlide.querySelector(".content");
   const revealBtn = activeSlide.querySelector(".reveal-btn");
+  const hint = activeSlide.querySelector(".hint");
   if (content) content.classList.add("hidden");
   if (revealBtn) revealBtn.style.display = "block";
+  if (hint) hint.style.display = "";
   prevIndex = i;
   updateSlideCounter();
 
@@ -350,8 +352,10 @@ function vibrate(pattern) {
 function triggerRevealForButton(btn) {
   const slide = btn.closest(".slide");
   const content = slide.querySelector(".content");
+  const hint = slide.querySelector(".hint");
   if (content) {
     content.classList.remove("hidden");
+    if (hint) hint.style.display = "none";
     // Compute ripple origin from button center (percentage of viewport)
     const btnRect = btn.getBoundingClientRect();
     const centerX = btnRect.left + btnRect.width / 2;
