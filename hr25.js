@@ -137,6 +137,124 @@ function warmUpAudioAfterFirstGesture() {
     if (sfxHeart && typeof sfxHeart.prime === "function") sfxHeart.prime();
     if (sfxNext && typeof sfxNext.prime === "function") sfxNext.prime();
   } catch (_) {}
+
+  // Prewarm the reversed boom buffer so releasing a hold can reverse-play instantly.
+  try {
+    prewarmBoomReverse();
+  } catch (_) {}
+}
+
+// Reverse-play support for the hold boom (HTMLAudio cannot play backwards).
+let _boomAudioCtx = null;
+let _boomBufferPromise = null;
+let _boomReversedBufferPromise = null;
+let _boomReverseSource = null;
+
+function getBoomAudioContext() {
+  if (_boomAudioCtx) return _boomAudioCtx;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  _boomAudioCtx = new Ctx();
+  return _boomAudioCtx;
+}
+
+function prewarmBoomReverse() {
+  const ctx = getBoomAudioContext();
+  if (!ctx) return;
+  try {
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  } catch (_) {}
+  try {
+    void getBoomReversedBuffer();
+  } catch (_) {}
+}
+
+async function getBoomBuffer() {
+  if (_boomBufferPromise) return _boomBufferPromise;
+  _boomBufferPromise = (async () => {
+    const ctx = getBoomAudioContext();
+    if (!ctx) throw new Error("AudioContext unavailable");
+    const resp = await fetch("audio/boom.mp3", { cache: "force-cache" });
+    const arr = await resp.arrayBuffer();
+    return await ctx.decodeAudioData(arr);
+  })().catch((e) => {
+    _boomBufferPromise = null;
+    throw e;
+  });
+  return _boomBufferPromise;
+}
+
+async function getBoomReversedBuffer() {
+  if (_boomReversedBufferPromise) return _boomReversedBufferPromise;
+  _boomReversedBufferPromise = (async () => {
+    const ctx = getBoomAudioContext();
+    if (!ctx) throw new Error("AudioContext unavailable");
+    const buf = await getBoomBuffer();
+
+    const reversed = ctx.createBuffer(
+      buf.numberOfChannels,
+      buf.length,
+      buf.sampleRate
+    );
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const src = buf.getChannelData(ch);
+      const dst = reversed.getChannelData(ch);
+      for (let i = 0, j = src.length - 1; i < src.length; i++, j--) {
+        dst[i] = src[j];
+      }
+    }
+    return reversed;
+  })().catch((e) => {
+    _boomReversedBufferPromise = null;
+    throw e;
+  });
+  return _boomReversedBufferPromise;
+}
+
+async function playBoomReverseFromTime(forwardTimeSec, playbackRate = 1) {
+  const ctx = getBoomAudioContext();
+  if (!ctx) return;
+
+  let t = Number(forwardTimeSec) || 0;
+  if (t <= 0.02) return;
+
+  try {
+    if (ctx.state === "suspended") await ctx.resume();
+  } catch (_) {}
+
+  const reversed = await getBoomReversedBuffer();
+  const d = reversed.duration || 0;
+  if (!(d > 0)) return;
+  t = Math.max(0, Math.min(t, d));
+
+  // Stop any previous reverse boom that might still be playing.
+  try {
+    if (_boomReverseSource) {
+      _boomReverseSource.stop();
+      _boomReverseSource.disconnect();
+    }
+  } catch (_) {}
+  _boomReverseSource = null;
+
+  const offset = Math.max(0, Math.min(d, d - t));
+  try {
+    const src = ctx.createBufferSource();
+    src.buffer = reversed;
+    try {
+      const r = Number(playbackRate) || 1;
+      src.playbackRate.value = Math.max(0.25, Math.min(4, r));
+    } catch (_) {}
+    src.connect(ctx.destination);
+    src.addEventListener(
+      "ended",
+      () => {
+        if (_boomReverseSource === src) _boomReverseSource = null;
+      },
+      { once: true }
+    );
+    _boomReverseSource = src;
+    src.start(0, offset);
+  } catch (_) {}
 }
 
 // One-time gesture warmup (helps when <link rel="preload"> is ignored).
@@ -515,10 +633,63 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
   let holding = false;
   let holdStart = 0;
   let holdRAF = null;
+  let rewindRAF = null;
   let holdIndicator = null;
   let milestone = 0; // for haptic progress pulses
   let required = 2900;
   let holdCompleted = false;
+  let resetTransformTimer = null;
+  let indicatorRemoveTimer = null;
+  let lastProgress = 0;
+
+  const stopRewind = () => {
+    try {
+      if (rewindRAF) {
+        cancelAnimationFrame(rewindRAF);
+        rewindRAF = null;
+      }
+    } catch (_) {}
+  };
+
+  const startRewindIndicator = (fromP) => {
+    if (!holdIndicator) return;
+    stopRewind();
+
+    const start = performance.now();
+    const from = Math.max(0, Math.min(1, Number(fromP) || 0));
+    // Rewind speed: match the forward required time (so it feels symmetric)
+    const durationMs = Math.max(160, Math.round((required || 2900) * from));
+
+    const tick = () => {
+      if (!holdIndicator) return;
+      const t = Math.min(1, (performance.now() - start) / durationMs);
+      const p = from * (1 - t);
+      const deg = Math.floor(p * 360);
+      try {
+        holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
+      } catch (_) {}
+      if (t >= 1) {
+        // Done rewinding: now fade out + remove.
+        const el = holdIndicator;
+        holdIndicator = null;
+        try {
+          el.classList.add("is-canceling");
+        } catch (_) {}
+        try {
+          if (indicatorRemoveTimer) clearTimeout(indicatorRemoveTimer);
+        } catch (_) {}
+        indicatorRemoveTimer = setTimeout(() => {
+          try {
+            el.remove();
+          } catch (_) {}
+        }, 180);
+        rewindRAF = null;
+        return;
+      }
+      rewindRAF = requestAnimationFrame(tick);
+    };
+    rewindRAF = requestAnimationFrame(tick);
+  };
 
   // Managed boom instance for hold lifecycle
   let holdBoomAudio = null;
@@ -575,8 +746,24 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
       document.body.style.removeProperty("--shake-speed");
     } catch (_) {}
     if (holdIndicator) {
-      holdIndicator.remove();
-      holdIndicator = null;
+      if (!completed) {
+        // Rewind the ring from current progress back to 0.
+        try {
+          startRewindIndicator(lastProgress);
+        } catch (_) {
+          // Fallback: remove immediately
+          try {
+            holdIndicator.remove();
+          } catch (_) {}
+          holdIndicator = null;
+        }
+      } else {
+        stopRewind();
+        holdIndicator.remove();
+        holdIndicator = null;
+      }
+    } else {
+      stopRewind();
     }
     if (holdRAF) {
       cancelAnimationFrame(holdRAF);
@@ -584,15 +771,62 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
     }
     // If user canceled early, stop the boom; on completion let it finish
     if (!completed) {
-      stopHoldBoom(true);
+      try {
+        if (holdBoomAudio) {
+          let t = 0;
+          let rate = 1;
+          try {
+            t = Number(holdBoomAudio.currentTime) || 0;
+          } catch (_) {}
+          try {
+            rate = Number(holdBoomAudio.playbackRate) || 1;
+          } catch (_) {}
+          try {
+            holdBoomAudio.pause();
+          } catch (_) {}
+          try {
+            holdBoomAudio.currentTime = 0;
+          } catch (_) {}
+          holdBoomAudio = null;
+          // Fire and forget; prewarmed on first gesture.
+          try {
+            void playBoomReverseFromTime(t, rate);
+          } catch (_) {}
+        } else {
+          stopHoldBoom(true);
+        }
+      } catch (_) {
+        stopHoldBoom(true);
+      }
     }
-    // Reset button transform
-    btn.style.transform = "";
+    // Reset button transform (ease back on cancel)
+    if (!completed) {
+      try {
+        if (resetTransformTimer) clearTimeout(resetTransformTimer);
+      } catch (_) {}
+      try {
+        btn.style.transition = "transform 160ms ease-out";
+        // Trigger style flush so the transition applies
+        void btn.offsetHeight;
+        btn.style.transform = "translateZ(20px) scale(1)";
+        resetTransformTimer = setTimeout(() => {
+          try {
+            btn.style.transition = "";
+            btn.style.transform = "";
+          } catch (_) {}
+        }, 180);
+      } catch (_) {
+        btn.style.transform = "";
+      }
+    } else {
+      btn.style.transform = "";
+    }
   };
 
   const loop = () => {
     if (!holding) return;
     const p = Math.min(1, (performance.now() - holdStart) / required);
+    lastProgress = p;
     const deg = Math.floor(p * 360);
     if (holdIndicator) {
       holdIndicator.style.backgroundImage = `conic-gradient(var(--accent) ${deg}deg, rgba(255,255,255,0.12) 0deg)`;
@@ -662,6 +896,8 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
           makeSparkle(centerX + rand(-200, 200), centerY + rand(-200, 200))
         );
       }
+      // Delete old particles right away (especially important on slower phones)
+      applyParticleCaps();
       // COLOR BURST FLASH
       triggerColorBurst();
       // Extra hearts rain on final slide
@@ -679,12 +915,33 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
 
   btn.addEventListener("pointerdown", (e) => {
     addRipple(e);
+
+    // If a previous cancel animation is still fading out, clean it up.
+    try {
+      stopRewind();
+      if (resetTransformTimer) {
+        clearTimeout(resetTransformTimer);
+        resetTransformTimer = null;
+      }
+      if (indicatorRemoveTimer) {
+        clearTimeout(indicatorRemoveTimer);
+        indicatorRemoveTimer = null;
+      }
+      btn.style.transition = "";
+      btn.querySelectorAll(".hold-indicator.is-canceling").forEach((el) => {
+        try {
+          el.remove();
+        } catch (_) {}
+      });
+    } catch (_) {}
+
     try {
       required = getHoldRequiredMsForSlide(btn.closest(".slide"));
     } catch (_) {
       required = 2900;
     }
     milestone = 0;
+    lastProgress = 0;
     // Start the managed boom when hold begins
     holdCompleted = false;
     startHoldBoom();
@@ -728,6 +985,7 @@ document.querySelectorAll(".reveal-btn").forEach((btn) => {
           )
         );
       }
+      applyParticleCaps();
     },
     { passive: true }
   );
@@ -777,20 +1035,24 @@ document.addEventListener(
 
     // Spawn bubbles along the drag path
     if (!onEndScreen) {
-      for (let i = 0; i < 3; i++) {
+      const n = scaledCount(3);
+      for (let i = 0; i < n; i++) {
         bubbles.push(makeBubble(x + rand(-15, 15), y + rand(-15, 15), true));
       }
     }
 
     // Spawn sparkles occasionally
-    if (Math.random() < 0.2) {
+    if (particleQuality > 0 && Math.random() < 0.2 * particleQuality) {
       sparkles.push(makeSparkle(x + rand(-20, 20), y + rand(-20, 20)));
     }
 
     // Spawn hearts occasionally
-    if (Math.random() < 0.1) {
+    if (particleQuality > 0 && Math.random() < 0.1 * particleQuality) {
       hearts.push(makeHeart(x + rand(-25, 25), y + rand(-25, 25)));
     }
+
+    // Delete old particles right away (touchmove can spam spawns)
+    applyParticleCaps();
   },
   { passive: true }
 );
@@ -836,7 +1098,9 @@ let confetti = [];
 const isMobile =
   /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
   window.innerWidth <= 640;
-let dpr = Math.max(1, window.devicePixelRatio || 1);
+// Render scale: use full DPR normally; drop to 1 in lite mode when slow.
+const dprBase = Math.max(1, window.devicePixelRatio || 1);
+let dpr = dprBase;
 let cw = 0,
   ch = 0;
 let pointerX = null,
@@ -859,35 +1123,183 @@ let perfLastTs = performance.now();
 let perfSlowMs = 0;
 let perfFastMs = 0;
 
+// Debug logging for adaptive quality (opt-in)
+// Enable via: add ?perfdebug=1 to the URL, or run localStorage.setItem('perfdebug','1')
+let perfDebug = false;
+try {
+  const qs = new URLSearchParams(window.location.search);
+  perfDebug = qs.get("perfdebug") === "1" ||
+    (typeof localStorage !== "undefined" && localStorage.getItem("perfdebug") === "1");
+} catch (_) {}
+let perfLastLoggedState = "";
+let perfLastLoggedQuality = particleQuality;
+let perfLastLogTs = 0;
+
+// Lite mode: aggressively simplify visuals so the page still loads/runs on weak devices.
+let liteMode = false;
+let liteModeEverEnabled = false;
+
+// Hook for disabling device-orientation 3D tilt if it's enabled.
+let disableOrientation3d = null;
+
+function setLiteMode(enable) {
+  const next = !!enable;
+  if (liteMode === next) return;
+  liteMode = next;
+  if (liteMode) liteModeEverEnabled = true;
+
+  try {
+    // Disable expensive 3D tilt on mobile if present.
+    if (liteMode && typeof disableOrientation3d === "function") {
+      disableOrientation3d();
+    }
+  } catch (_) {}
+
+  // Reduce render resolution in lite mode.
+  try {
+    dpr = liteMode
+      ? 1
+      : dprBase;
+  } catch (_) {
+    dpr = liteMode ? 1 : dpr;
+  }
+
+  // Immediately drop the most expensive transient particles.
+  try {
+    confetti.length = 0;
+    sparkles.length = 0;
+    applyParticleCaps();
+  } catch (_) {}
+
+  // Clear any 3D transforms that might be left on the active slide.
+  try {
+    const active = document.querySelector(".slide.active");
+    if (active) active.style.transform = "";
+  } catch (_) {}
+
+  // Recompute targets with the new mode/DPR.
+  try {
+    resizeCanvas();
+  } catch (_) {}
+}
+
 function updateParticleQuality(nowTs) {
-  const dt = Math.max(0, nowTs - perfLastTs);
+  // Cap dt so background-tab throttling or a long GC pause doesn't permanently
+  // push us into "slow".
+  const rawDt = Math.max(0, nowTs - perfLastTs);
   perfLastTs = nowTs;
+  const dt = Math.min(rawDt, 120);
+
   // Exponential moving average of frame time
   perfEmaMs = perfEmaMs * 0.9 + dt * 0.1;
 
-  // Consider "slow" when frames are consistently > ~40ms (~25fps)
-  // Consider "fast" when consistently < ~24ms (~41fps)
-  if (perfEmaMs > 40) {
-    perfSlowMs += dt;
-    perfFastMs = 0;
-  } else if (perfEmaMs < 24) {
-    perfFastMs += dt;
-    perfSlowMs = 0;
-  } else {
-    perfSlowMs = 0;
+  const prevQuality = particleQuality;
+  const prevSlow = perfSlowMs;
+  const prevFast = perfFastMs;
+
+  // Use hysteresis + decay so we can move between slow/mid/fast smoothly.
+  // slow: >45ms (~22fps), fast: <28ms (~36fps)
+  const slowNow = perfEmaMs > 45;
+  const fastNow = perfEmaMs < 28;
+
+  if (slowNow) perfSlowMs = Math.min(15000, perfSlowMs + dt);
+  else perfSlowMs = Math.max(0, perfSlowMs - dt * 0.7);
+
+  if (fastNow) perfFastMs = Math.min(15000, perfFastMs + dt);
+  else perfFastMs = Math.max(0, perfFastMs - dt * 0.7);
+
+  // Progressive quality: smoothly reduce particles as performance worsens,
+  // all the way down to 0 (no particles at all).
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+  // Map EMA frame time to a quality scalar.
+  // Good: ~16-22ms, OK: 28-35ms, Bad: 45ms+, Worst: 70ms+.
+  const ema = perfEmaMs;
+  let desired = 1;
+  if (ema <= 22) desired = 1;
+  else if (ema <= 28) desired = 0.85;
+  else if (ema <= 35) desired = 0.65;
+  else if (ema <= 45) desired = 0.4;
+  else if (ema <= 55) desired = 0.22;
+  else if (ema <= 70) desired = 0.1;
+  else desired = 0;
+
+  // If sustained slow, force quality further down (prevents "stuck" slow).
+  if (perfSlowMs > 3500) desired = Math.min(desired, 0);
+  else if (perfSlowMs > 2400) desired = Math.min(desired, 0.08);
+  else if (perfSlowMs > 1400) desired = Math.min(desired, 0.18);
+
+  // Smoothing: degrade fast, recover slower.
+  const downRate = 0.25;
+  const upRate = 0.08;
+  const rate = desired < particleQuality ? downRate : upRate;
+  particleQuality = clamp01(particleQuality + (desired - particleQuality) * rate);
+
+  // Snap very small values to 0 to truly remove everything.
+  if (particleQuality < 0.03) particleQuality = 0;
+
+  // Lite mode should be enabled only when sustained slow, disabled on sustained recovery.
+  const shouldLite = particleQuality <= 0.25 || perfSlowMs > 1100 || (isMobile && perfEmaMs > 60);
+  const shouldUnlite = particleQuality >= 0.6 && perfFastMs > 6500 && perfEmaMs < 30;
+
+  if (!liteMode && shouldLite) setLiteMode(true);
+  if (liteMode && shouldUnlite) {
+    setLiteMode(false);
     perfFastMs = 0;
   }
 
-  // Degrade quickly when slow; recover slowly when stable.
-  if (perfSlowMs > 900) {
-    particleQuality = isMobile ? 0.25 : 0.4;
+  // If we just downgraded quality, trim existing particles immediately.
+  // This prevents "one huge burst" from lingering and keeping slow devices stuck.
+  if (particleQuality < prevQuality) {
+    try {
+      applyParticleCaps();
+      // In very-low quality mode, clear the most expensive transient particles.
+      if (particleQuality <= 0.2) {
+        confetti.length = 0;
+        sparkles.length = 0;
+        // Trim hearts hard; and if we hit 0, remove everything.
+        if (particleQuality === 0) {
+          hearts.length = 0;
+          bubbles.length = 0;
+          snowflakes.length = 0;
+          stars.length = 0;
+        }
+      }
+    } catch (_) {}
   }
-  if (perfSlowMs > 2400) {
-    particleQuality = isMobile ? 0.15 : 0.3;
-  }
-  if (perfFastMs > 4000) {
-    particleQuality = Math.min(1, particleQuality + 0.1);
-    perfFastMs = 0;
+
+  // Debug: log only on state changes / threshold crossings (no spam)
+  if (perfDebug) {
+    const state = slowNow ? "slow" : fastNow ? "fast" : "mid";
+    const crossedSlow900 = prevSlow <= 900 && perfSlowMs > 900;
+    const crossedSlow2400 = prevSlow <= 2400 && perfSlowMs > 2400;
+    const crossedFast2500 = prevFast <= 2500 && perfFastMs > 2500;
+    const qualityChanged = prevQuality !== particleQuality;
+    const stateChanged = state !== perfLastLoggedState;
+
+    // Throttle logs (at most ~1 per second) unless crossing a threshold
+    const shouldLog =
+      crossedSlow900 ||
+      crossedSlow2400 ||
+      crossedFast2500 ||
+      qualityChanged ||
+      (stateChanged && nowTs - perfLastLogTs > 900);
+
+    if (shouldLog) {
+      perfLastLogTs = nowTs;
+      perfLastLoggedState = state;
+      perfLastLoggedQuality = particleQuality;
+      try {
+        console.debug(
+          "[perf]",
+          state,
+          "emaMs=", Math.round(perfEmaMs),
+          "slowMs=", Math.round(perfSlowMs),
+          "fastMs=", Math.round(perfFastMs),
+          "particleQuality=", particleQuality
+        );
+      } catch (_) {}
+    }
   }
 }
 
@@ -916,15 +1328,9 @@ function applyParticleCaps() {
   const confettiCapBase = isMobile ? 140 : 280;
   const sparklesCapBase = isMobile ? 120 : 240;
   const heartsCapBase = isMobile ? 120 : 220;
-  capArray(
-    confetti,
-    Math.max(20, Math.floor(confettiCapBase * particleQuality))
-  );
-  capArray(
-    sparkles,
-    Math.max(20, Math.floor(sparklesCapBase * particleQuality))
-  );
-  capArray(hearts, Math.max(20, Math.floor(heartsCapBase * particleQuality)));
+  capArray(confetti, Math.floor(confettiCapBase * particleQuality));
+  capArray(sparkles, Math.floor(sparklesCapBase * particleQuality));
+  capArray(hearts, Math.floor(heartsCapBase * particleQuality));
 }
 
 function resizeCanvas() {
@@ -936,27 +1342,29 @@ function resizeCanvas() {
   canvas.style.height = ch + "px";
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // adjust bubble count based on area
-  let base = Math.max(26, Math.floor((cw * ch) / 42000));
+  let base = Math.floor((cw * ch) / 42000);
   if (turboMode) base *= 1.5;
-  const target = Math.min(90, Math.floor(base * particleQuality));
+  const target = Math.min(
+    liteMode ? 45 : 90,
+    Math.max(0, Math.floor(base * particleQuality))
+  );
   while (bubbles.length < target) bubbles.push(makeBubble());
   if (bubbles.length > target) bubbles.length = target;
   // stars
-  let starTarget = Math.max(6, Math.floor((cw * ch) / 140000));
+  let starTarget = Math.floor((cw * ch) / 140000);
   starTarget = Math.min(22, starTarget);
   starTarget = Math.max(
-    3,
-    Math.floor(starTarget * (0.6 + 0.4 * particleQuality))
+    0,
+    Math.floor(starTarget * particleQuality)
   );
+  if (liteMode) starTarget = Math.min(6, starTarget);
   while (stars.length < starTarget) stars.push(makeStar());
   if (stars.length > starTarget) stars.length = starTarget;
   // snowflakes
-  snowTarget = Math.max(10, Math.floor((cw * ch) / 90000));
+  snowTarget = Math.floor((cw * ch) / 90000);
   snowTarget = Math.min(36, snowTarget);
-  snowTarget = Math.max(
-    6,
-    Math.floor(snowTarget * (0.5 + 0.5 * particleQuality))
-  );
+  snowTarget = Math.max(0, Math.floor(snowTarget * particleQuality));
+  if (liteMode) snowTarget = Math.min(10, snowTarget);
   while (snowflakes.length < snowTarget) snowflakes.push(makeSnowflake());
   if (snowflakes.length > snowTarget) snowflakes.length = snowTarget;
 }
@@ -1210,6 +1618,8 @@ function spawnConfetti(x, y, count = 40) {
   for (let i = 0; i < n; i++) {
     confetti.push(makeConfetti(x + rand(-16, 16), y + rand(-12, 12)));
   }
+  // Cap immediately so old particles are deleted right away (not 1 frame later).
+  applyParticleCaps();
 }
 
 function makeConfetti(x, y) {
@@ -1430,36 +1840,54 @@ const pointerHandler = (clientX, clientY) => {
   pointerX = clientX;
   pointerY = clientY;
   const now = performance.now();
-  if (!onEndScreen && now - lastPointerSpawn > 40) {
-    bubbles.push(makeBubble(clientX, clientY, true));
+  // Reduce mouse particles when the device is slow.
+  const spawnEveryMs = Math.max(40, Math.floor(40 / Math.max(0.12, particleQuality)));
+  if (!onEndScreen && now - lastPointerSpawn > spawnEveryMs) {
+    if (particleQuality > 0) {
+      bubbles.push(makeBubble(clientX, clientY, true));
+    }
     lastPointerSpawn = now;
   }
-  // Optimized parallax on active slide with hardware acceleration
-  const active = document.querySelector(".slide.active");
-  if (active) {
-    const xPct = (clientX / cw - 0.5) * 2; // normalize to -1 to 1
-    const yPct = (clientY / ch - 0.5) * 2;
+  // 3D/parallax effects are expensive; disable in lite mode.
+  if (!liteMode) {
+    // Optimized parallax on active slide with hardware acceleration
+    const active = document.querySelector(".slide.active");
+    if (active) {
+      const xPct = (clientX / cw - 0.5) * 2; // normalize to -1 to 1
+      const yPct = (clientY / ch - 0.5) * 2;
 
-    // Use smaller values on mobile for subtler effect
-    const xMultiplier = isMobile ? 4 : 8;
-    const yMultiplier = isMobile ? 3 : 6;
-    const xOffset = isMobile ? 6 : 14;
-    const yOffset = isMobile ? 5 : 12;
+      // Use smaller values on mobile for subtler effect
+      const xMultiplier = isMobile ? 4 : 8;
+      const yMultiplier = isMobile ? 3 : 6;
+      const xOffset = isMobile ? 6 : 14;
+      const yOffset = isMobile ? 5 : 12;
 
-    // Use translate3d for hardware acceleration
-    active.style.transform = `translate3d(${xPct * xOffset}px, ${
-      yPct * yOffset
-    }px, 0) rotateY(${xPct * xMultiplier}deg) rotateX(${
-      yPct * -yMultiplier
-    }deg)`;
+      // Use translate3d for hardware acceleration
+      active.style.transform = `translate3d(${xPct * xOffset}px, ${
+        yPct * yOffset
+      }px, 0) rotateY(${xPct * xMultiplier}deg) rotateX(${
+        yPct * -yMultiplier
+      }deg)`;
+    }
+
+    // sparkles trail (skip more often on slow devices)
+    const sparkleChance = Math.min(1, Math.max(0, particleQuality));
+    if (Math.random() < sparkleChance) {
+      sparkles.push(makeSparkle(clientX, clientY));
+    }
   }
-  // sparkles trail
-  sparkles.push(makeSparkle(clientX, clientY));
+
+  // Delete old particles right away.
+  applyParticleCaps();
 };
 
 document.addEventListener(
   "pointermove",
-  (e) => pointerHandler(e.clientX, e.clientY),
+  (e) => {
+    // Pointermove can be extremely chatty on some devices.
+    if (liteMode) return;
+    pointerHandler(e.clientX, e.clientY);
+  },
   { passive: true }
 );
 document.addEventListener(
@@ -1529,6 +1957,8 @@ document.addEventListener(
       heart.hue = rand(300, 360);
       hearts.push(heart);
     }
+    // Delete old particles right away after the large heart burst
+    applyParticleCaps();
     spawnConfetti(e.clientX, e.clientY, 20);
     vibrate([20, 100, 20]);
     playHeartSFX(); // Play heart sound for double-click burst
@@ -2376,6 +2806,14 @@ if (
 
   // Smoothing function for natural movement
   function smoothOrientation() {
+    // Stop 3D tilt entirely in lite mode.
+    if (liteMode) {
+      try {
+        if (orientationRAF) cancelAnimationFrame(orientationRAF);
+      } catch (_) {}
+      orientationRAF = null;
+      return;
+    }
     // Interpolate current values toward target (smoothing)
     const smoothing = 0.2;
     currentRotateX += (targetRotateX - currentRotateX) * smoothing;
@@ -2391,6 +2829,7 @@ if (
   }
 
   function handleDeviceOrientation(event) {
+    if (liteMode) return;
     const beta = event.beta; // front-to-back tilt (-180 to 180)
     const gamma = event.gamma; // left-to-right tilt (-90 to 90)
 
@@ -2426,6 +2865,7 @@ if (
   }
 
   async function attachDeviceOrientationListener() {
+    if (liteMode) return;
     if (orientationListenerAttached) return;
     orientationListenerAttached = true;
 
@@ -2452,6 +2892,27 @@ if (
     once: true,
     passive: true,
   });
+
+  // Expose a disable hook so lite mode can shut this down.
+  disableOrientation3d = () => {
+    try {
+      if (orientationRAF) cancelAnimationFrame(orientationRAF);
+    } catch (_) {}
+    orientationRAF = null;
+
+    // Reset calibration so when lite mode ends we re-center smoothly.
+    baselineSet = false;
+    currentRotateX = 0;
+    currentRotateY = 0;
+    targetRotateX = 0;
+    targetRotateY = 0;
+
+    // Clear any remaining 3D transform
+    try {
+      const active = document.querySelector(".slide.active");
+      if (active) active.style.transform = "";
+    } catch (_) {}
+  };
 
   // If the user rotates the screen (portrait/landscape), re-calibrate.
   window.addEventListener("orientationchange", () => {
